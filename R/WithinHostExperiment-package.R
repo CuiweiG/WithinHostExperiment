@@ -185,6 +185,8 @@
 #' # List exported functions
 #' ls("package:WithinHostExperiment")
 #'
+#' @importFrom graphics hist
+#' @importFrom stats chisq.test pbinom
 #' @docType package
 #' @name WithinHostExperiment-package
 #' @aliases WithinHostExperiment-package

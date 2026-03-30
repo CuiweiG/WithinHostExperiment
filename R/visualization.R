@@ -134,7 +134,7 @@ plotFrequencySpectrum <- function(whe,
     })
     plot_df <- do.call(rbind, Filter(Negate(is.null), df_list))
 
-    if (nrow(plot_df) == 0L) {
+    if (is.null(plot_df) || nrow(plot_df) == 0L) {
         message("No data to plot after QC filtering")
         return(ggplot2::ggplot())
     }
