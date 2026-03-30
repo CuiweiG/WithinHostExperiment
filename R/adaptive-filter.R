@@ -40,7 +40,7 @@
 #'     circular consensus sequencing, allowing a frequency threshold
 #'     below ONT but above Illumina. Depth of 50x reflects the lower
 #'     throughput but high per-read accuracy (Wenger et al. 2019;
-#'     Deng et al. 2023).
+#'     Deng et al. 2020).
 #'   }
 #'   \item{\strong{Generic}}{
 #'     Falls back to the standard \code{\link{ISNVFilter}} defaults
