@@ -1,0 +1,16 @@
+"chrom","pos","ref","alt","aaf","depth"
+"test_segment",45,"C","T",0.35,1500
+"test_segment",112,"A","T",0.08,800
+"test_segment",198,"A","G",0.22,2200
+"test_segment",267,"C","A",0.45,3100
+"test_segment",334,"G","T",0.12,1200
+"test_segment",401,"C","T",0.06,500
+"test_segment",456,"G","T",0.18,1800
+"test_segment",523,"A","G",0.41,2500
+"test_segment",589,"T","G",0.09,900
+"test_segment",634,"C","G",0.33,2000
+"test_segment",701,"T","G",0.15,1600
+"test_segment",768,"G","A",0.27,2800
+"test_segment",812,"G","T",0.04,150
+"test_segment",889,"A","C",0.38,3500
+"test_segment",945,"G","A",0.11,1100

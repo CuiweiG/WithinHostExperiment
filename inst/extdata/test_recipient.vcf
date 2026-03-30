@@ -1,0 +1,20 @@
+##fileformat=VCFv4.2
+##source=iVar
+##reference=test_ref.fa
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=REF_DP,Number=1,Type=Integer,Description="Ref depth">
+##FORMAT=<ID=ALT_DP,Number=1,Type=Integer,Description="Alt depth">
+##FORMAT=<ID=ALT_FREQ,Number=1,Type=Float,Description="Alt frequency">
+##FORMAT=<ID=ALT_QUAL,Number=1,Type=Float,Description="Alt quality">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	recipient
+test_segment	45	.	C	T	255	PASS	DP=2000	GT:REF_DP:ALT_DP:ALT_FREQ:ALT_QUAL	0/1:1440:560:0.280000:30
+test_segment	267	.	C	A	255	PASS	DP=2800	GT:REF_DP:ALT_DP:ALT_FREQ:ALT_QUAL	0/1:1708:1092:0.390000:30
+test_segment	523	.	A	G	255	PASS	DP=2100	GT:REF_DP:ALT_DP:ALT_FREQ:ALT_QUAL	0/1:1365:735:0.350000:30
+test_segment	634	.	C	G	255	PASS	DP=1900	GT:REF_DP:ALT_DP:ALT_FREQ:ALT_QUAL	0/1:1121:779:0.410000:30
+test_segment	889	.	A	C	255	PASS	DP=3200	GT:REF_DP:ALT_DP:ALT_FREQ:ALT_QUAL	0/1:2240:960:0.300000:30
+test_segment	78	.	A	C	255	PASS	DP=600	GT:REF_DP:ALT_DP:ALT_FREQ:ALT_QUAL	0/1:558:42:0.070000:30
+test_segment	155	.	A	G	255	PASS	DP=1400	GT:REF_DP:ALT_DP:ALT_FREQ:ALT_QUAL	0/1:1190:210:0.150000:30
+test_segment	290	.	A	C	255	PASS	DP=2500	GT:REF_DP:ALT_DP:ALT_FREQ:ALT_QUAL	0/1:1950:550:0.220000:30
+test_segment	478	.	G	T	255	PASS	DP=900	GT:REF_DP:ALT_DP:ALT_FREQ:ALT_QUAL	0/1:810:90:0.100000:30
+test_segment	650	.	T	A	255	PASS	DP=400	GT:REF_DP:ALT_DP:ALT_FREQ:ALT_QUAL	0/1:380:20:0.050000:30

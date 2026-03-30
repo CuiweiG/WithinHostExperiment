@@ -1,0 +1,9 @@
+bibentry(
+    bibtype  = "Manual",
+    title    = "WithinHostExperiment: Within-Host Pathogen Variant QC, Diversity, and Bottleneck",
+    author   = person(given = "Cuiwei", family = "Gao",
+                      email = "48gaocuiwei@gmail.com"),
+    year     = sub("-.*", "", Sys.Date()),
+    note     = sprintf("R package version %s", meta$Version),
+    url      = "https://github.com/CuiweiG/WithinHostExperiment"
+)

@@ -1,0 +1,100 @@
+# WithinHostExperiment 0.99.0
+
+## New features
+
+* `WithinHostExperiment` S4 class extending
+  `RangedSummarizedExperiment` for within-host pathogen iSNV data,
+  with `setValidity` enforcing structural invariants.
+* Multi-caller import: `readWithinHost()` supports iVar, LoFreq,
+  Freebayes, and generic VCF formats with auto-detection.
+  `readWithinHostTable()` handles iVar TSV and generic CSV.
+* Replicate-aware QC: `flagISNV()` applies configurable quality
+  filters without removing data. `flagReplicateDiscordance()`
+  identifies discordant technical replicates with full provenance
+  logging. `flagPrimerSites()` masks amplicon primer regions.
+* Diversity indices: `shannonISNV()`, `piISNV()` (with optional
+  finite-sample correction per Nei 1987), `wattersonISNV()`,
+  `simpsonISNV()`, `chao1ISNV()`, and `calcDiversity()` for
+  per-sample within-host diversity.
+* Neutrality tests: `tajimaD()`, `fusFs()`, and
+  `calcNeutralityTests()` for site-frequency-spectrum-based
+  neutrality testing with deep-sequencing-aware sample size
+  capping.
+* **Site frequency spectrum as a first-class object**:
+  `WithinHostSFS` S4 class stores the within-host SFS with
+  metadata (sample, genome length, depth, detection threshold).
+  `buildSFS()` / `buildSFSList()` construct from a WHE;
+  `correctSFSBias()` applies ascertainment bias correction for
+  the detection threshold (truncation or binomial method);
+  `neutralityFromSFS()` computes Tajima's D, Fu's Fs, and
+  **Fay and Wu's H** (new) from a single SFS object;
+  `compareSFS()` tests SFS homogeneity between samples;
+  `plotSFS()` provides publication-quality SFS visualization.
+  This is the first Bioconductor implementation of a structured
+  within-host SFS with integrated bias correction.
+* **Temporal QC for longitudinal data**:
+  `flagTemporalInconsistency()` identifies transient iSNVs that
+  appear at only one timepoint (likely artefacts) versus persistent
+  ones detected across multiple consecutive timepoints. Supports
+  configurable `minTimepoints` and `minConsecutive` thresholds.
+  This is a QC dimension unique to longitudinal within-host data
+  that no existing tool automates.
+* **Cross-contamination detection**:
+  `detectCrossContamination()` identifies index-hopping signatures
+  where a high-frequency variant in one sample appears at
+  suspiciously low frequency in a co-sequenced sample, consistent
+  with adapter exchange during pooled sequencing. Returns a
+  structured DataFrame of suspect events with source/sink
+  frequencies and run metadata.
+* GFF3 annotation: `annotateFromGFF()` overlaps variant sites with
+  gene models from a GFF3 file, adding `GFF_FEATURE` to
+  `mcols(rowRanges)` for use with `dndsWithinHost()`.
+  `annotateCodonChange()` extends this with CDS-aware codon
+  translation: given a GFF3 and reference FASTA, it determines
+  the affected codon, translates both reference and alternative
+  alleles using the standard genetic code, and classifies each
+  SNV as Synonymous, Nonsynonymous, or Nonsense -- all in pure R
+  with no external annotation tools required.
+* Selection analysis: `dndsWithinHost()` for within-host dN/dS
+  estimation, `estimateSelectionCoefficient()` for time-series
+  selection coefficient inference.
+* Multi-caller consensus: `consensusISNV()` for deriving consensus
+  variant calls across callers, `calcCallerConcordance()` for
+  inter-caller agreement metrics, `benchmarkCallers()` for caller
+  performance comparison.
+* Longitudinal analysis: `trackFrequency()` for tracking variant
+  allele frequencies over time, `detectEmergingVariants()` for
+  identifying newly arising variants, `plotFrequencyTrajectory()`
+  for publication-quality trajectory plots.
+* Transmission analysis: `transmissionPairs()`,
+  `exportPairFrequencies()`, `calcSharedVariants()`, and
+  `quickBottleneck()` (approximate beta-binomial MLE, Sobel
+  Leonard et al. 2017) for bottleneck estimation.
+* Exact bottleneck estimation: `exactBottleneck()` implements
+  the exact beta-binomial, Wright-Fisher, and presence-absence
+  methods (Sobel Leonard et al. 2017).
+* Strand bias detection: `sciStrandBias()` and
+  `flagStrandBiasSCI()` for SCI-aware artifact filtering
+  (Farkas et al. 2024).
+* Adaptive filtering: `adaptiveFilter()` for technology-specific
+  QC presets (Illumina, ONT, PacBio HiFi).
+* Diversity modeling: `fitDiversityModel()` for regression
+  modeling of diversity measures, `multitestCorrection()` for
+  multiple testing correction, `permutationTest()` for
+  non-parametric hypothesis testing.
+* Validation: `validateDiversity()` for cross-checking diversity
+  estimates against literature-reported ranges.
+* ViralBottleneck bridge: `asViralBottleneckInput()` exports
+  standardized data for the ViralBottleneck package (Archaman
+  et al. 2025).
+* Interoperability: `as(whe, "VRanges")`,
+  `as(vr, "WithinHostExperiment")`, and
+  `as(whe, "data.frame")` for seamless integration.
+* Batch operations: `combineRows()` and `combineCols()` for
+  merging experiments.
+* Publication-quality visualization: `plotFrequencySpectrum()`,
+  `plotPairScatter()`, `plotQCDashboard()`, and
+  `plotFrequencyTrajectory()` with colorblind-safe palette
+  (Wong 2011).
+* SARS-CoV-2 case study in vignette with multi-pathogen
+  validation (Influenza A, HIV-1, M. tuberculosis).

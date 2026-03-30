@@ -1,0 +1,24 @@
+##fileformat=VCFv4.2
+##source=freeBayes v1.3.6
+##reference=test_ref.fa
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total read depth">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read Depth">
+##FORMAT=<ID=RO,Number=1,Type=Integer,Description="Ref observations">
+##FORMAT=<ID=AO,Number=1,Type=Integer,Description="Alt observations">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	donor_freebayes
+test_segment	45	.	C	T	255	PASS	DP=1500	GT:DP:RO:AO	0/1:1500:975:525
+test_segment	112	.	A	T	255	PASS	DP=800	GT:DP:RO:AO	0/1:800:736:64
+test_segment	198	.	A	G	255	PASS	DP=2200	GT:DP:RO:AO	0/1:2200:1716:484
+test_segment	267	.	C	A	255	PASS	DP=3100	GT:DP:RO:AO	0/1:3100:1705:1395
+test_segment	334	.	G	T	255	PASS	DP=1200	GT:DP:RO:AO	0/1:1200:1056:144
+test_segment	401	.	C	T	255	PASS	DP=500	GT:DP:RO:AO	0/1:500:470:30
+test_segment	456	.	G	T	255	PASS	DP=1800	GT:DP:RO:AO	0/1:1800:1476:324
+test_segment	523	.	A	G	255	PASS	DP=2500	GT:DP:RO:AO	0/1:2500:1475:1025
+test_segment	589	.	T	G	255	PASS	DP=900	GT:DP:RO:AO	0/1:900:819:81
+test_segment	634	.	C	G	255	PASS	DP=2000	GT:DP:RO:AO	0/1:2000:1340:660
+test_segment	701	.	T	G	255	PASS	DP=1600	GT:DP:RO:AO	0/1:1600:1360:240
+test_segment	768	.	G	A	255	PASS	DP=2800	GT:DP:RO:AO	0/1:2800:2044:756
+test_segment	812	.	G	T	255	PASS	DP=150	GT:DP:RO:AO	0/1:150:144:6
+test_segment	889	.	A	C	255	PASS	DP=3500	GT:DP:RO:AO	0/1:3500:2170:1330
+test_segment	945	.	G	A	255	PASS	DP=1100	GT:DP:RO:AO	0/1:1100:979:121

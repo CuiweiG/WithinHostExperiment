@@ -1,0 +1,204 @@
+# tests/testthat/test-import.R
+
+library(S4Vectors)
+
+# ---- readWithinHost: single VCF ----
+
+test_that("readWithinHost reads single iVar VCF", {
+    vcf <- system.file("extdata", "test_donor.vcf",
+                       package = "WithinHostExperiment")
+    whe <- readWithinHost(vcf,
+        colData = DataFrame(sample_id = "donor"),
+        caller = "ivar")
+
+    expect_s4_class(whe, "WithinHostExperiment")
+    expect_equal(nrow(whe), 15L)
+    expect_equal(ncol(whe), 1L)
+    expect_true("altFreq" %in% assayNames(whe))
+    expect_true("totalDepth" %in% assayNames(whe))
+    expect_true("refCount" %in% assayNames(whe))
+    expect_true("altCount" %in% assayNames(whe))
+    expect_true("qcPass" %in% assayNames(whe))
+})
+
+test_that("altFreq values are in [0, 1]", {
+    vcf <- system.file("extdata", "test_donor.vcf",
+                       package = "WithinHostExperiment")
+    whe <- readWithinHost(vcf,
+        colData = DataFrame(sample_id = "donor"),
+        caller = "ivar")
+    freq <- SummarizedExperiment::assay(whe, "altFreq")[, 1]
+    expect_true(all(freq >= 0 & freq <= 1, na.rm = TRUE))
+})
+
+test_that("totalDepth values are positive integers", {
+    vcf <- system.file("extdata", "test_donor.vcf",
+                       package = "WithinHostExperiment")
+    whe <- readWithinHost(vcf,
+        colData = DataFrame(sample_id = "donor"),
+        caller = "ivar")
+    dp <- SummarizedExperiment::assay(whe, "totalDepth")[, 1]
+    expect_true(all(dp > 0, na.rm = TRUE))
+    expect_true(is.integer(dp))
+})
+
+# ---- readWithinHost: multiple VCFs ----
+
+test_that("readWithinHost reads multiple VCFs and merges positions", {
+    vcf1 <- system.file("extdata", "test_donor.vcf",
+                        package = "WithinHostExperiment")
+    vcf2 <- system.file("extdata", "test_recipient.vcf",
+                        package = "WithinHostExperiment")
+    whe <- readWithinHost(c(vcf1, vcf2),
+        colData = DataFrame(
+            sample_id = c("donor", "recipient"),
+            role      = c("donor", "recipient"),
+            pair_id   = c("p1", "p1")),
+        caller = "ivar")
+
+    expect_equal(ncol(whe), 2L)
+    # Union: donor has 15 unique, recipient has 10, 5 shared -> 20 total
+    expect_equal(nrow(whe), 20L)
+    # Shared sites have values in both columns
+    freq <- SummarizedExperiment::assay(whe, "altFreq")
+    both_present <- sum(!is.na(freq[, 1]) & !is.na(freq[, 2]))
+    expect_equal(both_present, 5L)
+})
+
+test_that("non-shared sites have NA in the other sample", {
+    vcf1 <- system.file("extdata", "test_donor.vcf",
+                        package = "WithinHostExperiment")
+    vcf2 <- system.file("extdata", "test_recipient.vcf",
+                        package = "WithinHostExperiment")
+    whe <- readWithinHost(c(vcf1, vcf2),
+        colData = DataFrame(sample_id = c("D", "R")),
+        caller = "ivar")
+    freq <- SummarizedExperiment::assay(whe, "altFreq")
+    # Donor-only sites should be NA in recipient column
+    donor_only <- is.na(freq[, 2]) & !is.na(freq[, 1])
+    expect_equal(sum(donor_only), 10L)  # 15 - 5 shared
+})
+
+# ---- readWithinHost: auto-detect ----
+
+test_that("caller auto-detection works for iVar VCF", {
+    vcf <- system.file("extdata", "test_donor.vcf",
+                       package = "WithinHostExperiment")
+    expect_message(
+        whe <- readWithinHost(vcf,
+            colData = DataFrame(sample_id = "d"),
+            caller = "auto"),
+        "ivar"
+    )
+    expect_s4_class(whe, "WithinHostExperiment")
+})
+
+# ---- readWithinHost: colData metadata preserved ----
+
+test_that("colData columns are preserved", {
+    vcf <- system.file("extdata", "test_donor.vcf",
+                       package = "WithinHostExperiment")
+    whe <- readWithinHost(vcf,
+        colData = DataFrame(
+            sample_id = "donor", host_id = "P1",
+            role = "donor", pair_id = "pair_1",
+            ct_value = 18.5),
+        caller = "ivar")
+    cd <- SummarizedExperiment::colData(whe)
+    expect_true("host_id" %in% colnames(cd))
+    expect_true("ct_value" %in% colnames(cd))
+    expect_equal(cd$ct_value, 18.5)
+})
+
+# ---- readWithinHost: rowRanges has ref/alt ----
+
+test_that("rowRanges contains ref and alt mcols", {
+    vcf <- system.file("extdata", "test_donor.vcf",
+                       package = "WithinHostExperiment")
+    whe <- readWithinHost(vcf,
+        colData = DataFrame(sample_id = "d"),
+        caller = "ivar")
+    rr <- SummarizedExperiment::rowRanges(whe)
+    expect_true("ref" %in% colnames(S4Vectors::mcols(rr)))
+    expect_true("alt" %in% colnames(S4Vectors::mcols(rr)))
+})
+
+# ---- readWithinHost: error handling ----
+
+test_that("readWithinHost rejects non-existent files", {
+    expect_error(
+        readWithinHost("no_such_file.vcf",
+                       colData = DataFrame(sample_id = "x")),
+        "not found"
+    )
+})
+
+test_that("readWithinHost rejects mismatched colData length", {
+    vcf <- system.file("extdata", "test_donor.vcf",
+                       package = "WithinHostExperiment")
+    expect_error(
+        readWithinHost(vcf,
+                       colData = DataFrame(sample_id = c("a", "b"))),
+        "must match"
+    )
+})
+
+test_that("readWithinHost rejects colData without sample_id", {
+    vcf <- system.file("extdata", "test_donor.vcf",
+                       package = "WithinHostExperiment")
+    expect_error(
+        readWithinHost(vcf, colData = DataFrame(name = "x")),
+        "sample_id"
+    )
+})
+
+# ---- readWithinHostTable: iVar TSV ----
+
+test_that("readWithinHostTable reads iVar TSV", {
+    tsv <- system.file("extdata", "test_donor_ivar.tsv",
+                       package = "WithinHostExperiment")
+    whe <- readWithinHostTable(tsv, format = "ivar")
+    expect_s4_class(whe, "WithinHostExperiment")
+    expect_equal(nrow(whe), 15L)
+    expect_true("altFreq" %in% assayNames(whe))
+})
+
+# ---- readWithinHostTable: generic CSV ----
+
+test_that("readWithinHostTable reads generic CSV", {
+    csv <- system.file("extdata", "test_generic.csv",
+                       package = "WithinHostExperiment")
+    whe <- readWithinHostTable(csv, format = "generic")
+    expect_s4_class(whe, "WithinHostExperiment")
+    expect_equal(nrow(whe), 15L)
+})
+
+test_that("readWithinHostTable auto-generates sample_id from filename", {
+    tsv <- system.file("extdata", "test_donor_ivar.tsv",
+                       package = "WithinHostExperiment")
+    whe <- readWithinHostTable(tsv, format = "ivar")
+    cd <- SummarizedExperiment::colData(whe)
+    expect_equal(as.character(cd$sample_id), "test_donor_ivar")
+})
+
+# ---- readWithinHostTable: error handling ----
+
+test_that("readWithinHostTable rejects non-existent files", {
+    expect_error(
+        readWithinHostTable("nope.tsv", format = "ivar"),
+        "not found"
+    )
+})
+
+# ---- callerInfo in metadata ----
+
+test_that("caller is stored in metadata", {
+    vcf <- system.file("extdata", "test_donor.vcf",
+                       package = "WithinHostExperiment")
+    whe <- readWithinHost(vcf,
+        colData = DataFrame(sample_id = "d"),
+        caller = "ivar")
+    ci <- S4Vectors::metadata(whe)$calling_info
+    expect_s4_class(ci, "DataFrame")
+    expect_equal(ci$caller, "ivar")
+})

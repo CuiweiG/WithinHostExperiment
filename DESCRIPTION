@@ -1,0 +1,75 @@
+Package: WithinHostExperiment
+Title: Within-Host Pathogen Variant QC, Diversity, and Bottleneck
+Version: 0.99.0
+Authors@R:
+    person(given = "Cuiwei", family = "Gao",
+    email = "48gaocuiwei@gmail.com",
+    role = c("aut", "cre"))
+Description: Provides a SummarizedExperiment-based container and
+    workflow functions for analyzing intra-host single nucleotide
+    variants (iSNV) from pathogen deep sequencing data. Supports
+    replicate-aware quality control with full provenance tracking,
+    multi-caller import harmonization, within-host diversity
+    quantification, and standardized export to transmission bottleneck
+    estimation tools. Designed as infrastructure that bridges upstream
+    variant callers (iVar, LoFreq, Freebayes) with downstream analysis
+    packages through a common data object with uncertainty-preserving QC.
+License: Artistic-2.0
+Depends: R (>= 4.4.0)
+Imports:
+    methods,
+    BiocGenerics,
+    S4Vectors (>= 0.32.0),
+    IRanges,
+    GenomicRanges,
+    SummarizedExperiment,
+    GenomeInfoDb,
+    VariantAnnotation,
+    stats,
+    utils
+Suggests:
+    ggplot2 (>= 3.4.0),
+    patchwork,
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    BiocCheck,
+    covr
+biocViews: Genetics, VariantAnnotation, Sequencing, GenomicVariation,
+    QualityControl, VariantDetection
+URL: https://github.com/CuiweiG/WithinHostExperiment
+BugReports: https://github.com/CuiweiG/WithinHostExperiment/issues
+Encoding: UTF-8
+LazyData: false
+RoxygenNote: 7.3.3
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+Collate:
+    'AllClasses.R'
+    'AllGenerics.R'
+    'WithinHostExperiment-package.R'
+    'adaptive-filter.R'
+    'methods.R'
+    'annotate-gff.R'
+    'annotate-codon.R'
+    'bridge.R'
+    'bottleneck-exact.R'
+    'bottleneck-quick.R'
+    'consensus.R'
+    'contamination.R'
+    'data.R'
+    'diversity.R'
+    'import-table.R'
+    'import-vcf.R'
+    'longitudinal.R'
+    'modeling.R'
+    'neutrality.R'
+    'qc-filters.R'
+    'qc-replicate.R'
+    'qc-temporal.R'
+    'selection.R'
+    'sfs.R'
+    'strand-bias.R'
+    'validation.R'
+    'visualization.R'
+    'zzz.R'

@@ -1,0 +1,721 @@
+---
+title: "Introduction to WithinHostExperiment"
+author: "Cuiwei Gao"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+vignette: >
+  %\VignetteIndexEntry{Introduction to WithinHostExperiment}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+    collapse = TRUE,
+    comment = "#>"
+)
+```
+
+# Installation
+
+```{r install, eval=FALSE}
+# From Bioconductor (after acceptance):
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("WithinHostExperiment")
+
+# Development version from GitHub:
+BiocManager::install("CuiweiG/WithinHostExperiment")
+```
+
+# Introduction
+
+`WithinHostExperiment` is a Bioconductor infrastructure package for
+analyzing intra-host single nucleotide variants (iSNV) from pathogen
+deep sequencing data.
+
+## The problem
+
+Researchers performing within-host pathogen diversity analysis face a
+fragmented tooling landscape. Variant callers such as iVar, LoFreq,
+and Freebayes produce outputs in different formats. Quality control
+relies on ad hoc scripts. There is no standard Bioconductor container
+that organizes within-host variant data with replicate information,
+donor-recipient pairing, and QC provenance.
+
+## What this package provides
+
+`WithinHostExperiment` fills the infrastructure gap between upstream
+variant callers and downstream analysis tools:
+
+- A `RangedSummarizedExperiment`-based container
+- Replicate-aware, uncertainty-preserving QC (flag, don't delete)
+- Within-host diversity quantification
+- Standardized export compatible with downstream bottleneck estimation tools
+
+## Relationship to existing tools
+
+| Tool | Role | Relationship |
+|------|------|-------------|
+| iVar, LoFreq, Freebayes | Variant calling | Upstream -- we import their output |
+| deepSNV | Low-frequency variant detection | Upstream -- complementary |
+| ViralBottleneck | Bottleneck estimation | Downstream -- we export to it |
+| QSutils | Quasispecies diversity | Parallel -- different granularity |
+
+## Why Bioconductor?
+
+This package belongs in Bioconductor rather than CRAN for several
+reasons:
+
+1. **High-throughput genomic data.** Within-host pathogen diversity
+   analysis operates on deep sequencing data (BAM/VCF) -- the core
+   domain of Bioconductor.
+2. **Shared data structures.** `WithinHostExperiment` extends
+   `RangedSummarizedExperiment` and interoperates with `VRanges`,
+   `GRanges`, and the `VariantAnnotation` ecosystem.
+3. **Complementary to existing packages.** It provides an
+   interoperability layer between upstream variant callers and
+   downstream bottleneck estimation workflows through a standardized
+   QC container.
+4. **Reproducibility.** The flag-don't-delete QC philosophy and
+   full audit logging align with Bioconductor's emphasis on
+   reproducible workflows.
+
+# Quick start
+
+```{r quickstart, message=FALSE}
+library(WithinHostExperiment)
+
+# Import iSNV data from VCF
+vcf <- system.file("extdata", "test_donor.vcf",
+    package = "WithinHostExperiment")
+whe <- readWithinHost(vcf,
+    colData = S4Vectors::DataFrame(sample_id = "donor"),
+    caller = "ivar")
+whe
+```
+
+## Pipe-friendly workflow
+
+All core functions take a `WithinHostExperiment` as their first
+argument, making them compatible with R's native pipe:
+
+```{r pipe-workflow}
+library(GenomicRanges)
+primers <- GRanges("test_segment", IRanges::IRanges(
+    start = c(40, 880), end = c(65, 950)))
+
+result <- whe |>
+    flagISNV(ISNVFilter(minDepth = 200L, minFreq = 0.03)) |>
+    flagPrimerSites(primers) |>
+    passedISNV()
+
+cat("Input:", nrow(whe), "sites ->",
+    "After QC + primer masking:", nrow(result), "sites\n")
+```
+
+# Importing data
+
+## From VCF files
+
+Each VCF file corresponds to one sample. Sample metadata is provided
+via `colData`:
+
+```{r import-vcf}
+vcf1 <- system.file("extdata", "test_donor.vcf",
+    package = "WithinHostExperiment")
+vcf2 <- system.file("extdata", "test_recipient.vcf",
+    package = "WithinHostExperiment")
+
+whe <- readWithinHost(
+    c(vcf1, vcf2),
+    colData = S4Vectors::DataFrame(
+        sample_id = c("donor", "recipient"),
+        host_id   = c("P1", "P2"),
+        role      = c("donor", "recipient"),
+        pair_id   = c("pair_1", "pair_1")
+    ),
+    caller = "ivar"
+)
+whe
+```
+
+## From iVar TSV
+
+```{r import-tsv}
+tsv <- system.file("extdata", "test_donor_ivar.tsv",
+    package = "WithinHostExperiment")
+whe_tsv <- readWithinHostTable(tsv, format = "ivar")
+whe_tsv
+```
+
+# The WithinHostExperiment object
+
+The container extends `RangedSummarizedExperiment`:
+
+```{r object-structure}
+# Assays: variant-level matrices (rows = sites, columns = samples)
+SummarizedExperiment::assayNames(whe)
+
+# rowRanges: genomic coordinates with ref/alt
+head(SummarizedExperiment::rowRanges(whe))
+
+# colData: sample metadata
+SummarizedExperiment::colData(whe)
+
+# Transmission pairs (from colData role + pair_id)
+transmissionPairs(whe)
+```
+
+# Quality control
+
+Accurate iSNV identification requires careful quality control.
+Cavallo et al. (2023, *mSphere*) demonstrated that choice of
+variant caller and use of replicate sequencing have the most
+significant impact on iSNV discovery. `WithinHostExperiment`
+addresses both: it harmonizes output from multiple callers
+(iVar, LoFreq, Freebayes) and provides replicate-aware QC as a
+first-class feature.
+
+## Standard QC with flagISNV
+
+`flagISNV()` marks variants that fail quality criteria. It does
+**not** delete rows -- it sets `qcPass` to `FALSE`. This preserves
+all data for potential re-analysis with different thresholds.
+
+```{r qc-flag}
+# Create a filter
+filt <- ISNVFilter(minDepth = 200L, minFreq = 0.03)
+filt
+
+# Apply (flag, don't delete)
+whe_qc <- flagISNV(whe, filt)
+
+# Check the audit log
+qcLog(whe_qc)
+```
+
+```{r qc-summary}
+# Per-sample QC summary
+qcSummary(whe_qc)
+```
+
+```{r qc-passed}
+# Extract only QC-passed variants
+clean <- passedISNV(whe_qc)
+cat("Before:", nrow(whe_qc), "sites\n")
+cat("After passedISNV:", nrow(clean), "sites\n")
+```
+
+## Replicate-aware QC
+
+If your data includes technical replicates, `flagReplicateDiscordance()`
+identifies sites where replicates disagree:
+
+```{r replicate-qc}
+rep1 <- system.file("extdata", "test_donor_rep1.vcf",
+    package = "WithinHostExperiment")
+rep2 <- system.file("extdata", "test_donor_rep2.vcf",
+    package = "WithinHostExperiment")
+
+whe_rep <- readWithinHost(
+    c(rep1, rep2),
+    colData = S4Vectors::DataFrame(
+        sample_id       = c("rep1", "rep2"),
+        replicate_group = c("donor_reps", "donor_reps"),
+        replicate_id    = c("1", "2")
+    ),
+    caller = "ivar"
+)
+
+whe_rep <- flagReplicateDiscordance(whe_rep, freqTolerance = 0.05)
+qcLog(whe_rep)
+```
+
+## Primer site filtering
+
+For amplicon-based sequencing, variants in primer binding regions
+are unreliable and should be flagged:
+
+```{r primer-qc}
+library(GenomicRanges)
+primers <- GRanges("test_segment", IRanges::IRanges(
+    start = c(40, 880), end = c(65, 950)))
+whe_primer <- flagPrimerSites(whe_qc, primers)
+qcLog(whe_primer)
+```
+
+# Diversity analysis
+
+```{r diversity}
+div <- calcDiversity(whe_qc, genomeLength = 1000L)
+div
+```
+
+# Transmission analysis
+
+## Shared variant statistics
+
+```{r shared}
+sv <- calcSharedVariants(whe_qc, pairId = "pair_1")
+cat("Shared:", sv$n_shared, "\n")
+cat("Donor-only:", sv$n_donor_only, "\n")
+cat("Recipient-only:", sv$n_recipient_only, "\n")
+```
+
+## Quick bottleneck estimation
+
+For a lightweight MLE estimate using the beta-binomial method:
+
+```{r bottleneck}
+nb <- quickBottleneck(whe_qc, pairId = "pair_1", maxNb = 50L)
+cat("Nb MLE:", nb$Nb, "\n")
+cat("95% CI: [", nb$ci[1], ",", nb$ci[2], "]\n")
+```
+
+For comprehensive analysis with multiple methods, export to a
+compatible downstream tool such as `ViralBottleneck`:
+
+```{r vb-bridge}
+vb_input <- asViralBottleneckInput(whe_qc, pairId = "pair_1")
+head(vb_input)
+```
+
+# Interoperability
+
+`WithinHostExperiment` objects can be converted to standard
+Bioconductor and base R types for use with other packages.
+
+## Convert to data.frame
+
+```{r as-dataframe}
+df <- as(whe_qc, "data.frame")
+head(df)
+```
+
+## Convert to VRanges
+
+For integration with `VariantAnnotation` workflows:
+
+```{r as-vranges}
+vr <- as(whe_qc, "VRanges")
+vr
+```
+
+## Export for downstream bottleneck tools
+
+For comprehensive transmission bottleneck analysis using multiple
+methods, export the standardized input frame compatible with
+`ViralBottleneck` and similar tools:
+
+```{r vb-export}
+vb_input <- asViralBottleneckInput(whe_qc, pairId = "pair_1")
+head(vb_input)
+# Compatible with: ViralBottleneck::bottleneck_size(vb_input, ...)
+```
+
+# Visualization
+
+```{r viz-spectrum, fig.width=6, fig.height=4}
+plotFrequencySpectrum(whe_qc)
+```
+
+```{r viz-pair, fig.width=5, fig.height=5}
+plotPairScatter(whe_qc, pairId = "pair_1")
+```
+
+```{r viz-dashboard, fig.width=8, fig.height=6}
+plotQCDashboard(whe_qc)
+```
+
+# Validation
+
+## Plausibility checks
+
+The diversity and bottleneck estimates produced by this package
+fall within ranges reported in the literature:
+
+```{r validation}
+div <- calcDiversity(whe_qc, genomeLength = 1000L)
+cat("Shannon entropy:", round(div$shannon[1], 2), "\n")
+cat("Nucleotide diversity (pi):", format(div$pi[1], digits = 3), "\n")
+cat("Richness:", div$richness[1], "iSNV sites\n")
+
+nb <- quickBottleneck(whe_qc, pairId = "pair_1", maxNb = 50L)
+cat("Bottleneck Nb:", nb$Nb, "(95% CI:", nb$ci[1], "-", nb$ci[2], ")\n")
+```
+
+These values are consistent with published within-host pathogen
+diversity studies, where Shannon entropy typically ranges from 0 to
+~10 and tight transmission bottlenecks (Nb = 1-10) are commonly
+reported for respiratory viruses.
+
+## Comparison to existing tools
+
+| Feature | WithinHostExperiment | deepSNV | ViralBottleneck | QSutils |
+|---------|:---:|:---:|:---:|:---:|
+| Bioconductor SE-based container | Yes | No | No | No |
+| Multi-caller import (iVar/LoFreq/Freebayes) | Yes | N/A | N/A | N/A |
+| Replicate-aware QC | Yes | No | No | No |
+| Uncertainty-preserving (flag, don't delete) | Yes | No | N/A | No |
+| Primer site filtering | Yes | No | No | No |
+| Diversity indices | Yes | No | No | Yes (haplotype-level) |
+| Bottleneck estimation | Lightweight MLE | No | Yes (6 methods) | No |
+| VRanges coercion | Yes | N/A | No | No |
+| Compatible export for ViralBottleneck | Yes | No | N/A | No |
+
+# Case study: SARS-CoV-2 transmission pair
+
+This section demonstrates the complete workflow on real SARS-CoV-2
+iSNV data from McCrone et al. (2023) *Nature Communications* 14:235.
+We analyze household HH6 -- an epidemiologically confirmed
+donor-recipient pair.
+
+```{r case-study-import}
+donor_file <- system.file("extdata", "MHM1143_rep1.tsv",
+    package = "WithinHostExperiment")
+recip_file <- system.file("extdata", "MHM1184_rep1.tsv",
+    package = "WithinHostExperiment")
+
+whe_sars2 <- readWithinHostTable(
+    c(donor_file, recip_file),
+    format = "ivar",
+    colData = S4Vectors::DataFrame(
+        sample_id = c("MHM1143", "MHM1184"),
+        role = c("donor", "recipient"),
+        pair_id = c("HH6", "HH6")
+    )
+)
+whe_sars2
+```
+
+## QC and diversity
+
+```{r case-study-qc}
+whe_sars2 <- flagISNV(whe_sars2,
+    ISNVFilter(minDepth = 100L, minFreq = 0.03))
+qcSummary(whe_sars2)
+
+div_sars2 <- calcDiversity(whe_sars2, genomeLength = 29903L)
+div_sars2
+```
+
+## Transmission analysis
+
+```{r case-study-transmission}
+sv <- calcSharedVariants(whe_sars2, pairId = "HH6")
+cat("Shared:", sv$n_shared, "/ Donor-only:", sv$n_donor_only,
+    "/ Recipient-only:", sv$n_recipient_only, "\n")
+```
+
+# Multi-pathogen validation
+
+To demonstrate generalisability beyond SARS-CoV-2, we validate
+diversity estimates against literature-reported ranges for three
+additional pathogens using synthetic data calibrated to published
+values.
+
+## Influenza A (H3N2 HA segment)
+
+```{r multipathogen-flu}
+flu_file <- system.file("extdata", "test_influenza_donor.tsv",
+    package = "WithinHostExperiment")
+whe_flu <- readWithinHostTable(flu_file, format = "ivar",
+    colData = S4Vectors::DataFrame(sample_id = "flu_donor"))
+whe_flu <- flagISNV(whe_flu, adaptiveFilter("illumina"))
+div_flu <- calcDiversity(whe_flu, genomeLength = 1701L,
+    indices = c("pi", "shannon"))
+cat("Influenza pi:", format(div_flu$pi[1], digits = 3), "\n")
+cat("Influenza Shannon:", round(div_flu$shannon[1], 2), "\n")
+validateDiversity(div_flu, pathogen = "influenza")
+```
+
+## HIV-1 (pol region)
+
+```{r multipathogen-hiv}
+hiv_file <- system.file("extdata", "test_hiv_sample.tsv",
+    package = "WithinHostExperiment")
+whe_hiv <- readWithinHostTable(hiv_file, format = "ivar",
+    colData = S4Vectors::DataFrame(sample_id = "hiv_sample"))
+whe_hiv <- flagISNV(whe_hiv, adaptiveFilter("illumina"))
+div_hiv <- calcDiversity(whe_hiv, genomeLength = 1000L,
+    indices = c("pi", "shannon"))
+cat("HIV pi:", format(div_hiv$pi[1], digits = 3), "\n")
+cat("HIV Shannon:", round(div_hiv$shannon[1], 2), "\n")
+validateDiversity(div_hiv, pathogen = "hiv")
+```
+
+## Mycobacterium tuberculosis
+
+```{r multipathogen-tb}
+tb_file <- system.file("extdata", "test_tb_sample.tsv",
+    package = "WithinHostExperiment")
+whe_tb <- readWithinHostTable(tb_file, format = "ivar",
+    colData = S4Vectors::DataFrame(sample_id = "tb_sample"))
+whe_tb <- flagISNV(whe_tb, adaptiveFilter("illumina"))
+div_tb <- calcDiversity(whe_tb, genomeLength = 4411532L,
+    indices = c("pi", "shannon"))
+cat("TB pi:", format(div_tb$pi[1], digits = 3), "\n")
+cat("TB Shannon:", round(div_tb$shannon[1], 2), "\n")
+validateDiversity(div_tb, pathogen = "tb")
+```
+
+## Neutrality tests across pathogens
+
+```{r multipathogen-neutrality}
+nt_flu <- calcNeutralityTests(whe_flu, genomeLength = 1701L)
+nt_hiv <- calcNeutralityTests(whe_hiv, genomeLength = 1000L)
+nt_tb  <- calcNeutralityTests(whe_tb,  genomeLength = 4411532L)
+results <- data.frame(
+    pathogen = c("Influenza", "HIV-1", "M. tuberculosis"),
+    S = c(nrow(whe_flu), nrow(whe_hiv), nrow(whe_tb)),
+    tajimaD = c(nt_flu$tajimaD, nt_hiv$tajimaD, nt_tb$tajimaD),
+    fusFs = c(nt_flu$fusFs, nt_hiv$fusFs, nt_tb$fusFs)
+)
+results
+```
+
+Negative Tajima's D and Fu's Fs values are expected for within-host
+pathogen populations, consistent with purifying selection and/or
+recent population expansion from a transmission bottleneck.
+
+# Advanced features
+
+This section demonstrates additional analytical modules available
+in `WithinHostExperiment`. Each subsection provides a minimal
+working example.
+
+## Neutrality tests
+
+Tajima's D and Fu's Fs detect departures from neutral evolution.
+The `calcNeutralityTests()` method caps the effective sample size
+at *n* = 100 to avoid deep-sequencing bias (see `?tajimaD`).
+
+```{r neutrality}
+nt <- calcNeutralityTests(whe_qc, genomeLength = 1000L)
+nt
+```
+
+## GFF3 gene annotation
+
+Annotate variant sites with gene names from a GFF3 file. This
+automates the positional overlap needed for `dndsWithinHost()`:
+
+```{r gff-annotate}
+gff_file <- tempfile(fileext = ".gff3")
+writeLines(c(
+    "##gff-version 3",
+    "test_segment\t.\tgene\t1\t500\t.\t+\t.\tName=geneA",
+    "test_segment\t.\tgene\t501\t1000\t.\t+\t.\tName=geneB"
+), gff_file)
+whe_ann <- annotateFromGFF(whe_qc, gff_file)
+table(S4Vectors::mcols(
+    SummarizedExperiment::rowRanges(whe_ann))$GFF_FEATURE)
+```
+
+For codon-aware annotation (amino acid changes), use
+`annotateCodonChange()` with a GFF3 and reference FASTA:
+
+```{r codon-annotate}
+ref_fa <- system.file("extdata", "test_ref.fa",
+    package = "WithinHostExperiment")
+if (file.exists(ref_fa)) {
+    gff_cds <- tempfile(fileext = ".gff3")
+    writeLines(c("##gff-version 3",
+        "test_segment\t.\tCDS\t1\t999\t.\t+\t0\tgene=testGene"),
+        gff_cds)
+    whe_codon <- annotateCodonChange(whe_qc, gff_cds, ref_fa)
+    mc <- S4Vectors::mcols(
+        SummarizedExperiment::rowRanges(whe_codon))
+    table(mc$AA_CLASS)
+}
+```
+
+For complex genomes with overlapping reading frames or
+non-standard codon usage, consider SnpEff or ANNOVAR upstream.
+
+## Selection analysis
+
+### Within-host dN/dS
+
+Classify iSNVs as synonymous or nonsynonymous and compute the
+ratio per sample. Requires amino acid annotation in
+`mcols(rowRanges)`:
+
+```{r dnds}
+## Add minimal amino acid annotation for demonstration
+rr <- SummarizedExperiment::rowRanges(whe_qc)
+S4Vectors::mcols(rr)$REF_AA <- sample(c("M", "L", "A", "V"),
+    length(rr), replace = TRUE)
+S4Vectors::mcols(rr)$ALT_AA <- sample(c("I", "L", "T", "V"),
+    length(rr), replace = TRUE)
+SummarizedExperiment::rowRanges(whe_qc) <- rr
+dnds <- dndsWithinHost(whe_qc)
+dnds
+```
+
+### Selection coefficients from frequency trajectories
+
+For longitudinal data, estimate the selection coefficient from
+the logit-transformed frequency change:
+
+```{r selection}
+freqs <- c(0.05, 0.10, 0.25, 0.50)
+s_hat <- estimateSelectionCoefficient(freqs,
+    times = c(0, 3, 7, 14))
+s_hat
+```
+
+## Multi-caller consensus
+
+When data from multiple variant callers are available, create a
+consensus call set:
+
+```{r consensus}
+gr1 <- GenomicRanges::GRanges("seg",
+    IRanges::IRanges(c(100, 200, 300), width = 1))
+S4Vectors::mcols(gr1)$ref <- c("A", "C", "G")
+S4Vectors::mcols(gr1)$alt <- c("T", "G", "A")
+whe1 <- WithinHostExperiment(
+    assays = list(altFreq = matrix(c(0.10, 0.20, 0.30), ncol = 1)),
+    rowRanges = gr1,
+    colData = S4Vectors::DataFrame(sample_id = "S1"))
+
+gr2 <- GenomicRanges::GRanges("seg",
+    IRanges::IRanges(c(100, 200, 400), width = 1))
+S4Vectors::mcols(gr2)$ref <- c("A", "C", "T")
+S4Vectors::mcols(gr2)$alt <- c("T", "G", "C")
+whe2 <- WithinHostExperiment(
+    assays = list(altFreq = matrix(c(0.12, 0.18, 0.15), ncol = 1)),
+    rowRanges = gr2,
+    colData = S4Vectors::DataFrame(sample_id = "S1"))
+
+cons <- consensusISNV(list(ivar = whe1, lofreq = whe2))
+cons
+
+## Pairwise caller concordance
+calcCallerConcordance(list(ivar = whe1, lofreq = whe2))
+```
+
+## Exact bottleneck estimation
+
+Three methods beyond the approximate `quickBottleneck()`:
+
+```{r exact-bottleneck}
+nb_pa <- exactBottleneck(whe_qc, pairId = "pair_1",
+    maxNb = 50L, method = "presence_absence")
+cat("Presence-absence Nb:", nb_pa$Nb,
+    "(95% CI:", nb_pa$ci[1], "-", nb_pa$ci[2], ")\n")
+```
+
+## Longitudinal frequency tracking
+
+Track variant frequencies across time points within a host:
+
+```{r longitudinal}
+gr_l <- GenomicRanges::GRanges("seg1",
+    IRanges::IRanges(c(100, 200), width = 1))
+S4Vectors::mcols(gr_l)$ref <- c("A", "C")
+S4Vectors::mcols(gr_l)$alt <- c("T", "G")
+freq_l <- matrix(c(0.02, 0.10, 0.12, 0.15),
+    nrow = 2, ncol = 2)
+whe_l <- WithinHostExperiment(
+    assays = list(altFreq = freq_l),
+    rowRanges = gr_l,
+    colData = S4Vectors::DataFrame(
+        sample_id = c("t1", "t2"),
+        host_id = c("H1", "H1"),
+        timepoint = c(1, 2)))
+
+## Track frequencies
+trackFrequency(whe_l)
+
+## Detect emerging variants
+detectEmergingVariants(whe_l)
+```
+
+## SCI strand bias filtering
+
+The SCI metric (Farkas et al. 2024) normalises strand bias by the
+global strand coverage ratio, suitable for amplicon data:
+
+```{r sci-strand}
+sci <- sciStrandBias(
+    fwd_alt   = c(50, 2, 30),
+    rev_alt   = c(45, 40, 28),
+    fwd_total = c(500, 500, 500),
+    rev_total = c(480, 480, 480))
+sci
+```
+
+## Adaptive technology-specific filtering
+
+Pre-configured filter presets for different sequencing platforms:
+
+```{r adaptive}
+adaptiveFilter("illumina")
+adaptiveFilter("ont")
+adaptiveFilter("pacbio_hifi")
+```
+
+## Diversity modeling and statistical utilities
+
+Fit linear models to diversity data and correct for multiple
+testing:
+
+```{r modeling}
+div_df <- data.frame(
+    shannon = c(1.2, 1.5, 0.8, 1.1, 1.9, 0.7),
+    timepoint = c(1, 2, 3, 1, 2, 3),
+    group = c("A", "A", "A", "B", "B", "B"))
+res <- fitDiversityModel(div_df, shannon ~ timepoint,
+    group_col = "group")
+res$summary_df
+
+## Multiple testing correction
+raw_p <- c(0.001, 0.04, 0.03, 0.5)
+multitestCorrection(raw_p)
+```
+
+## Literature-range validation
+
+Cross-check observed diversity against expected ranges for a
+given pathogen:
+
+```{r validate}
+div_check <- S4Vectors::DataFrame(pi = 1e-4, shannon = 5.0)
+validateDiversity(div_check, pathogen = "sars_cov_2")
+```
+
+# Scope and limitations
+
+This package operates at the level of individual single nucleotide
+variants (iSNVs). It does **not** perform:
+
+- **Haplotype phasing or quasispecies reconstruction**, which require
+  read-level (BAM) analysis outside the scope of
+  `RangedSummarizedExperiment`. For haplotype-aware analysis, consider
+  CliqueSNV (Knyazev et al. 2020 *Genome Res* 30:376), ShoRAH
+  (Zagordi et al. 2011 *BMC Bioinformatics* 12:119), or similar
+  tools. Their output can be imported into `WithinHostExperiment`
+  for downstream diversity and QC analysis.
+
+- **Co-infection vs diversity distinction**, which requires
+  phylogenetic analysis of full haplotypes. The multi-caller
+  consensus and replicate-concordance modules reduce artefacts
+  but do not resolve this.
+
+- **Stochastic selection coefficient estimation**. The
+  `estimateSelectionCoefficient()` function uses a deterministic
+  logit-frequency model. For drift-aware inference, consider
+  dedicated Wright-Fisher or diffusion-based frameworks.
+
+# Session info
+
+```{r session}
+sessionInfo()
+```

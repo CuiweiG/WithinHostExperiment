@@ -1,0 +1,6 @@
+"sample_id","host_id","replicate_group","replicate_id","role","pair_id","ct_value"
+"donor","P1",NA,NA,"donor","pair_1",18.5
+"recipient","P2",NA,NA,"recipient","pair_1",22.1
+"independent","P3",NA,NA,"independent",NA,15.3
+"donor_rep1","P1","donor_reps","rep1","donor","pair_1",18.7
+"donor_rep2","P1","donor_reps","rep2","donor","pair_1",18.4
