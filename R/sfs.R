@@ -51,6 +51,7 @@ NULL
 #'   \code{WithinHostExperiment}, \code{\link{neutralityFromSFS}}
 #'   for computing all neutrality tests from the SFS.
 #'
+#' @aliases WithinHostSFS
 #' @exportClass WithinHostSFS
 .WithinHostSFS <- setClass("WithinHostSFS",
     slots = list(

@@ -3,6 +3,7 @@
 \docType{class}
 \name{WithinHostSFS-class}
 \alias{WithinHostSFS-class}
+\alias{WithinHostSFS}
 \alias{.WithinHostSFS}
 \alias{show,WithinHostSFS-method}
 \title{WithinHostSFS: Site Frequency Spectrum for within-host variants}
