@@ -11,6 +11,4 @@ doc/
 Meta/
 inst/doc/
 
-# GitHub Actions CI (excluded from Bioconductor submission)
-.github/
 
