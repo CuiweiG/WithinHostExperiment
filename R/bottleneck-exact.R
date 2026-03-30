@@ -146,6 +146,7 @@ exactBottleneck <- function(whe, pairId, maxNb = 500L,
 
 #' Log beta-binomial PMF: log BetaBinom(k | n, alpha, beta)
 #' @keywords internal
+#' @noRd
 .logBetaBinomPMF <- function(k, n, alpha, beta_p) {
     lchoose(n, k) +
         lbeta(k + alpha, n - k + beta_p) -
@@ -266,6 +267,7 @@ exactBottleneck <- function(whe, pairId, maxNb = 500L,
 
 #' Extract donor/recipient data for a pair
 #' @keywords internal
+#' @noRd
 .extractPairData <- function(whe, pairId, threshold,
                              need_counts = FALSE) {
     vb_input <- asViralBottleneckInput(whe, pairId = pairId,
@@ -328,6 +330,7 @@ exactBottleneck <- function(whe, pairId, maxNb = 500L,
 
 #' Finalize MLE from log-likelihood vector
 #' @keywords internal
+#' @noRd
 .finalizeMLE <- function(ll_vals, maxNb, nboot, n_var, pairId,
                           method, ...) {
     mle_idx <- which.max(ll_vals)
@@ -355,6 +358,7 @@ exactBottleneck <- function(whe, pairId, maxNb = 500L,
 
 #' Bootstrap confidence interval by resampling variant sites
 #' @keywords internal
+#' @noRd
 .bootstrapCI <- function(nboot, maxNb, n_var, method, ...) {
     args <- list(...)
     boot_nbs <- vapply(seq_len(nboot), function(b) {
@@ -384,6 +388,7 @@ exactBottleneck <- function(whe, pairId, maxNb = 500L,
 
 #' Empty result when no variants found
 #' @keywords internal
+#' @noRd
 .emptyResult <- function(pairId, method) {
     message("No donor variants above threshold for pair '",
             pairId, "'.")

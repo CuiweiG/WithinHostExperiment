@@ -16,4 +16,3 @@
 ^inst/scripts/save_example_data\.R$
 ^inst/scripts/real_data/farjo_longitudinal$
 ^inst/scripts/real_data/sars2_NC045512\.gff3$
-^man/figures$

@@ -275,6 +275,7 @@ setMethod("show", "WithinHostExperiment", function(object) {
 #' @param n_passed Integer. Number of entries still passing.
 #' @return Updated \code{WithinHostExperiment}.
 #' @keywords internal
+#' @noRd
 .addQcStep <- function(whe, step, parameter, value, n_flagged, n_passed) {
     entry <- DataFrame(
         step      = step,
@@ -297,6 +298,7 @@ setMethod("show", "WithinHostExperiment", function(object) {
 #' @param metadata Named list. Additional metadata.
 #' @return A \code{WithinHostExperiment}.
 #' @keywords internal
+#' @noRd
 .makeWHE <- function(rowRanges, assays, colData,
                      callerName = NA_character_, metadata = list()) {
     sample_ids <- as.character(colData$sample_id)
@@ -484,6 +486,7 @@ combineCols <- function(...) {
 }
 
 #' @keywords internal
+#' @noRd
 .mergeQcLogs <- function(whe_list) {
     logs_list <- lapply(whe_list, qcLog)
     ## Convert to data.frame for safe rbind, then back
