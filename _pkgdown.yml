@@ -1,0 +1,58 @@
+url: https://cuiweig.github.io/WithinHostExperiment/
+template:
+  bootstrap: 5
+  package: biocthemes
+
+reference:
+  - title: "Data Classes"
+    desc: "S4 classes for within-host viral variant data"
+    contents:
+      - WithinHostExperiment-class
+      - ISNVFilter-class
+
+  - title: "Data Import"
+    desc: "Read and construct WithinHostExperiment objects"
+    contents:
+      - WithinHostExperiment
+      - readWithinHost
+      - readWithinHostTable
+      - combineCols
+      - combineRows
+
+  - title: "Quality Control"
+    desc: "Filter and flag low-quality variants"
+    contents:
+      - ISNVFilter
+      - flagISNV
+      - flagPrimerSites
+      - flagReplicateDiscordance
+      - passedISNV
+      - qcFilters
+      - "qcFilters<-"
+      - qcLog
+      - "qcLog<-"
+      - qcSummary
+
+  - title: "Diversity Estimation"
+    desc: "Within-host genetic diversity metrics"
+    contents:
+      - calcDiversity
+      - compareDiversity
+      - shannonISNV
+      - wattersonISNV
+      - piISNV
+
+  - title: "Transmission Analysis"
+    desc: "Bottleneck estimation and transmission pair analysis"
+    contents:
+      - transmissionPairs
+      - calcSharedVariants
+      - quickBottleneck
+      - asViralBottleneckInput
+      - exportPairFrequencies
+
+  - title: "Visualization"
+    contents:
+      - plotFrequencySpectrum
+      - plotPairScatter
+      - plotQCDashboard
