@@ -1,7 +1,6 @@
 url: https://cuiweig.github.io/WithinHostExperiment/
 template:
   bootstrap: 5
-  package: biocthemes
 
 reference:
   - title: "Data Classes"
