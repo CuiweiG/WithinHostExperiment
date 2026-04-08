@@ -56,6 +56,6 @@ reference:
       - plotPairScatter
       - plotQCDashboard
 
-- title: "Other"
+  - title: "Other"
     contents:
       - matches(".")
