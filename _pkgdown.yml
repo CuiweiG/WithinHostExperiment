@@ -55,3 +55,7 @@ reference:
       - plotFrequencySpectrum
       - plotPairScatter
       - plotQCDashboard
+
+- title: "Other"
+    contents:
+      - matches(".")
