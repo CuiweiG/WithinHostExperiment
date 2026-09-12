@@ -5,7 +5,6 @@
 *Bioconductor Infrastructure for Within-Host Pathogen Variant QC,
 Diversity, and Transmission Bottleneck Workflows*
 
-[![R-CMD-check](https://github.com/CuiweiG/WithinHostExperiment/actions/workflows/R-CMD-check.yml/badge.svg)](https://github.com/CuiweiG/WithinHostExperiment/actions/workflows/R-CMD-check.yml)
 [![License: Artistic-2.0](https://img.shields.io/badge/License-Artistic--2.0-blue.svg)](https://opensource.org/licenses/Artistic-2.0)
 [![BioC status](https://img.shields.io/badge/BioC-0.99.0-orange.svg)](https://bioconductor.org/)
 
@@ -267,3 +266,7 @@ Data files in `inst/scripts/real_data/` (GitHub only, not in installed package):
 
 - [Vignette: Introduction to WithinHostExperiment](vignettes/WithinHostExperiment.Rmd)
 - [GitHub repository](https://github.com/CuiweiG/WithinHostExperiment)
+
+The continuous-integration configuration lives on the `ci` branch, so that the
+default branch holds package code only, as the _Bioconductor_ package
+submission instructions require.

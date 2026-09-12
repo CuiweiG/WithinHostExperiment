@@ -12,6 +12,11 @@
 \arguments{
 \item{object}{An \code{ISNVFilter} object.}
 }
+\value{
+An object of class \code{ISNVFilter}. Objects are created with
+the constructor \code{\link{ISNVFilter}}; the \code{show} method prints
+the filter thresholds and returns \code{NULL} invisibly.
+}
 \description{
 An S4 class holding parameters for filtering intra-host single
 nucleotide variants. Used by \code{\link{flagISNV}}.

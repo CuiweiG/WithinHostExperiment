@@ -47,6 +47,10 @@ NULL
 #' @slot corrected Logical scalar. Whether ascertainment bias
 #'   correction has been applied.
 #'
+#' @return An object of class \code{WithinHostSFS}, normally created by
+#'   \code{\link{buildSFS}}; the \code{show} method prints a summary of the
+#'   spectrum and returns \code{NULL} invisibly.
+#'
 #' @seealso \code{\link{buildSFS}} for constructing from a
 #'   \code{WithinHostExperiment}, \code{\link{neutralityFromSFS}}
 #'   for computing all neutrality tests from the SFS.

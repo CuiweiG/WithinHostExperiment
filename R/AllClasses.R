@@ -32,6 +32,10 @@ NULL
 #' @slot replicateConc Logical scalar. Whether to require concordance
 #'   between technical replicates (default: FALSE).
 #'
+#' @return An object of class \code{ISNVFilter}. Objects are created with
+#'   the constructor \code{\link{ISNVFilter}}; the \code{show} method prints
+#'   the filter thresholds and returns \code{NULL} invisibly.
+#'
 #' @details
 #' Default values are based on commonly used thresholds in the
 #' within-host pathogen diversity literature:

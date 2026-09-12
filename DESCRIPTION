@@ -15,7 +15,7 @@ Description: Provides a SummarizedExperiment-based container and
     variant callers (iVar, LoFreq, Freebayes) with downstream analysis
     packages through a common data object with uncertainty-preserving QC.
 License: Artistic-2.0
-Depends: R (>= 4.4.0)
+Depends: R (>= 4.6.0)
 Imports:
     methods,
     BiocGenerics,
