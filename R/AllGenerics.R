@@ -72,7 +72,8 @@ setGeneric("passedISNV", function(x) standardGeneric("passedISNV"))
 #'
 #' @export
 #' @rdname WHE-accessors
-setGeneric("transmissionPairs", function(x) standardGeneric("transmissionPairs"))
+setGeneric("transmissionPairs",
+    function(x) standardGeneric("transmissionPairs"))
 
 #' Set the QC audit log
 #'

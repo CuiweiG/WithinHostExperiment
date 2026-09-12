@@ -122,8 +122,16 @@ detectCrossContamination <- function(whe,
     mc <- mcols(rr)
     chr_vals <- as.character(seqnames(rr))
     pos_vals <- start(rr)
-    ref_vals <- if ("ref" %in% colnames(mc)) as.character(mc$ref) else rep(NA_character_, n_sites)
-    alt_vals <- if ("alt" %in% colnames(mc)) as.character(mc$alt) else rep(NA_character_, n_sites)
+    ref_vals <- if ("ref" %in% colnames(mc)) {
+        as.character(mc$ref)
+    } else {
+        rep(NA_character_, n_sites)
+    }
+    alt_vals <- if ("alt" %in% colnames(mc)) {
+        as.character(mc$alt)
+    } else {
+        rep(NA_character_, n_sites)
+    }
 
     ## Determine run groups
     if (!is.null(runCol) && runCol %in% colnames(cd)) {

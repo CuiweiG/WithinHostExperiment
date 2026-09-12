@@ -218,9 +218,8 @@ estimateSelectionCoefficient <- function(freqs, times = NULL,
     }
 
     logit_p <- log(freqs / (1 - freqs))
-    n <- length(freqs)
-    delta_logit <- logit_p[2:n] - logit_p[1:(n - 1L)]
-    delta_t <- (times[2:n] - times[1:(n - 1L)]) / generation_time
+    delta_logit <- diff(logit_p)
+    delta_t <- diff(times) / generation_time
 
     if (any(delta_t == 0))
         stop("'times' must contain strictly increasing values.")
