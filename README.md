@@ -267,6 +267,5 @@ Data files in `inst/scripts/real_data/` (GitHub only, not in installed package):
 - [Vignette: Introduction to WithinHostExperiment](vignettes/WithinHostExperiment.Rmd)
 - [GitHub repository](https://github.com/CuiweiG/WithinHostExperiment)
 
-The continuous-integration configuration lives on the `ci` branch, so that the
-default branch holds package code only, as the _Bioconductor_ package
-submission instructions require.
+The continuous-integration configuration lives on the `ci` branch; the default
+branch holds the package source only.
