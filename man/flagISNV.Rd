@@ -45,6 +45,11 @@ Filtering steps are applied in order:
   \item Strand bias (\code{maxStrandBias}) -- only if
     \code{fwdAltCount} and \code{revAltCount} assays exist
 }
+
+The \code{minBaseQual}, \code{minMapQual} and \code{replicateConc}
+slots of the filter are recorded for provenance but not applied
+here; a non-default value raises a warning. Use
+\code{\link{flagReplicateDiscordance}} for replicate concordance.
 }
 \examples{
 vcf <- system.file("extdata", "test_donor.vcf",

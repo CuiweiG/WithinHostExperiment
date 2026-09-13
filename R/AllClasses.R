@@ -26,11 +26,16 @@ NULL
 #' @slot maxStrandBias Numeric scalar. Maximum strand bias as
 #'   fold-difference between strands (default: 10.0).
 #' @slot minBaseQual Integer scalar. Minimum mean base quality
-#'   (default: 20).
+#'   (default: 20). Recorded for provenance only:
+#'   \code{\link{flagISNV}} does not apply it, because the object
+#'   model has no per-site quality assay. Filter on quality in the
+#'   variant caller instead.
 #' @slot minMapQual Integer scalar. Minimum mean mapping quality
-#'   (default: 20).
-#' @slot replicateConc Logical scalar. Whether to require concordance
-#'   between technical replicates (default: FALSE).
+#'   (default: 20). Recorded for provenance only, as for
+#'   \code{minBaseQual}.
+#' @slot replicateConc Logical scalar. Whether replicate concordance
+#'   is required (default: FALSE). Recorded for provenance only;
+#'   apply it with \code{\link{flagReplicateDiscordance}}.
 #'
 #' @return An object of class \code{ISNVFilter}. Objects are created with
 #'   the constructor \code{\link{ISNVFilter}}; the \code{show} method prints

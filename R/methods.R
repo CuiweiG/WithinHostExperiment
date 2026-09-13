@@ -28,9 +28,12 @@ NULL
 #' @param minAltReads Integer. Minimum alt allele reads (default: 10).
 #' @param maxStrandBias Numeric. Max strand bias fold-diff (default: 10).
 #' @param minBaseQual Integer. Minimum base quality (default: 20).
+#'   Recorded for provenance; \code{\link{flagISNV}} does not apply it.
 #' @param minMapQual Integer. Minimum mapping quality (default: 20).
+#'   Recorded for provenance; \code{\link{flagISNV}} does not apply it.
 #' @param replicateConc Logical. Require replicate concordance
-#'   (default: FALSE).
+#'   (default: FALSE). Recorded for provenance; apply it with
+#'   \code{\link{flagReplicateDiscordance}}.
 #'
 #' @return An \code{\link{ISNVFilter}} object.
 #' @export
@@ -110,6 +113,18 @@ WithinHostExperiment <- function(assays, rowRanges, colData,
         stop("'colData' must contain a 'sample_id' column. ",
              "Found columns: ",
              paste(colnames(colData), collapse = ", "))
+    }
+
+    ## Every downstream function reads altFreq
+    if (!is.list(assays) || !length(assays) ||
+            !"altFreq" %in% names(assays)) {
+        stop("'assays' must be a named list containing 'altFreq'. ",
+             "Found: ",
+             if (length(names(assays))) {
+                 paste(names(assays), collapse = ", ")
+             } else {
+                 "no named assays"
+             })
     }
 
     n_sites   <- nrow(assays[[1]])
