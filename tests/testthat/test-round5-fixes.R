@@ -90,3 +90,26 @@ test_that("trackFrequency keeps its documented order and content", {
                  c("seg1:100:T", "seg1:100:T", "seg1:200:G"))
     expect_equal(as.numeric(traj$timepoint), c(1, 2, 2))
 })
+
+test_that("flagISNV warns about thresholds it cannot apply", {
+    vcf <- system.file("extdata", "test_donor.vcf",
+                       package = "WithinHostExperiment")
+    whe <- readWithinHost(vcf,
+        colData = S4Vectors::DataFrame(sample_id = "donor"),
+        caller = "ivar")
+    expect_warning(flagISNV(whe, ISNVFilter(minBaseQual = 30L)),
+                   "not.*applied")
+    expect_warning(flagISNV(whe, ISNVFilter(replicateConc = TRUE)),
+                   "flagReplicateDiscordance")
+    expect_no_warning(flagISNV(whe, ISNVFilter()))
+})
+
+test_that("the constructor requires an altFreq assay", {
+    gr <- GenomicRanges::GRanges("seg1",
+        IRanges::IRanges(c(100, 200), width = 1))
+    expect_error(WithinHostExperiment(
+        assays = list(totalDepth = matrix(c(10L, 20L), ncol = 1)),
+        rowRanges = gr,
+        colData = S4Vectors::DataFrame(sample_id = "S1")),
+        "altFreq")
+})

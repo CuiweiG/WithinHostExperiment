@@ -26,12 +26,15 @@ ISNVFilter(
 
 \item{maxStrandBias}{Numeric. Max strand bias fold-diff (default: 10).}
 
-\item{minBaseQual}{Integer. Minimum base quality (default: 20).}
+\item{minBaseQual}{Integer. Minimum base quality (default: 20).
+Recorded for provenance; \code{\link{flagISNV}} does not apply it.}
 
-\item{minMapQual}{Integer. Minimum mapping quality (default: 20).}
+\item{minMapQual}{Integer. Minimum mapping quality (default: 20).
+Recorded for provenance; \code{\link{flagISNV}} does not apply it.}
 
 \item{replicateConc}{Logical. Require replicate concordance
-(default: FALSE).}
+(default: FALSE). Recorded for provenance; apply it with
+\code{\link{flagReplicateDiscordance}}.}
 }
 \value{
 An \code{\link{ISNVFilter}} object.
