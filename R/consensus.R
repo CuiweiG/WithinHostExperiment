@@ -44,7 +44,10 @@ NULL
 #'     \item{freq_spread}{Range of allele frequencies across callers.}
 #'   }
 #'   The \code{altFreq} assay contains the mean frequency across
-#'   callers for each consensus site.
+#'   callers for each consensus site. It is the only assay of the
+#'   result: read counts, depths and \code{qcPass} are not carried
+#'   over, so run \code{\link{flagISNV}} on the individual callers'
+#'   objects rather than on the consensus.
 #'
 #' @references
 #' Roder AE et al. (2023). Optimized quantification of intra-host

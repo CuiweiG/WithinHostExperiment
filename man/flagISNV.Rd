@@ -15,7 +15,8 @@ flagISNV(x, filter = ISNVFilter(), ...)
 \item{filter}{An \code{\link{ISNVFilter}} object (default:
 \code{ISNVFilter()}).}
 
-\item{...}{Additional arguments (currently unused).}
+\item{...}{Must be empty. Any further argument is an error, so that a
+misspelled argument name cannot be silently ignored.}
 }
 \value{
 The filtered object (same class as input).

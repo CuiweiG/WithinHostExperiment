@@ -98,27 +98,10 @@ trackFrequency <- function(whe,
     n_sites <- nrow(freq_mat)
     n_samples <- ncol(freq_mat)
 
-    records <- vector("list", n_sites * n_samples)
-    idx <- 0L
-    for (j in seq_len(n_samples)) {
-        freq_j <- freq_mat[, j]
-        qc_j <- if (!is.null(qc_mat)) qc_mat[, j] else rep(TRUE, n_sites)
-        if (!is.null(qc_mat)) freq_j[!qc_j] <- NA
-        for (i in seq_len(n_sites)) {
-            if (is.na(freq_j[i])) next
-            idx <- idx + 1L
-            records[[idx]] <- data.frame(
-                host_id = host_ids[j],
-                variant_key = variant_keys[i],
-                timepoint = timepoints[j],
-                frequency = freq_j[i],
-                qc_passed = qc_j[i],
-                stringsAsFactors = FALSE)
-        }
-    }
+    if (!is.null(qc_mat)) freq_mat[!qc_mat] <- NA
+    entries <- which(!is.na(freq_mat), arr.ind = TRUE)
 
-    records <- records[seq_len(idx)]
-    if (length(records) == 0L) {
+    if (nrow(entries) == 0L) {
         return(DataFrame(
             host_id = character(),
             variant_key = character(),
@@ -127,7 +110,16 @@ trackFrequency <- function(whe,
             qc_passed = logical()))
     }
 
-    DataFrame(do.call(rbind, records))
+    DataFrame(
+        host_id = host_ids[entries[, "col"]],
+        variant_key = variant_keys[entries[, "row"]],
+        timepoint = timepoints[entries[, "col"]],
+        frequency = freq_mat[entries],
+        qc_passed = if (is.null(qc_mat)) {
+            rep(TRUE, nrow(entries))
+        } else {
+            qc_mat[entries]
+        })
 }
 
 

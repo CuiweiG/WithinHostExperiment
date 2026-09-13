@@ -14,7 +14,7 @@ test_that("adaptiveFilter('ont') sets high minFreq and disables strand bias", {
     filt <- adaptiveFilter("ont")
     expect_s4_class(filt, "ISNVFilter")
     expect_equal(slot(filt, "minFreq"), 0.10)
-    expect_equal(slot(filt, "minDepth"), 30L)
+    expect_equal(slot(filt, "minDepth"), 60L)
     expect_equal(slot(filt, "maxStrandBias"), Inf)
 })
 

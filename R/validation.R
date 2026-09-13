@@ -12,17 +12,23 @@ NULL
 # Literature-range validation
 # ============================================================
 
-#' Validate diversity estimates against literature ranges
+#' Check diversity estimates against plausibility ranges
 #'
-#' Compares observed diversity metrics against expected ranges
-#' reported in the literature for common pathogens.
-#' Ranges are defined per 10 kb genome equivalent.
+#' Compares observed diversity metrics against wide plausibility
+#' ranges for common pathogens, as a sanity check on units and
+#' orders of magnitude rather than a reference interval. The bounds
+#' are the package's own heuristics, not estimates from a specific
+#' study, and are deliberately generous: \eqn{\pi} is compared on a
+#' per-site scale and Shannon entropy on the scale returned by
+#' \code{\link{calcDiversity}}. A value inside the range is not
+#' evidence that an estimate is correct.
 #'
 #' @param div_df A \code{DataFrame} or \code{data.frame} with columns
 #'   \code{metric} and \code{value}, or containing diversity columns
 #'   such as \code{pi} and \code{shannon} (as returned by
 #'   \code{\link{calcDiversity}}).
-#' @param pathogen Character scalar. Pathogen to validate against.
+#' @param pathogen Character scalar. Pathogen whose plausibility
+#'   range is used.
 #'   One of \code{"sars_cov_2"}, \code{"influenza"}, \code{"hiv"},
 #'   \code{"tb"}, or \code{"generic"}.
 #'
@@ -30,10 +36,10 @@ NULL
 #'   \describe{
 #'     \item{metric}{Diversity metric name.}
 #'     \item{observed}{Observed value.}
-#'     \item{expected_min}{Lower bound of expected range.}
-#'     \item{expected_max}{Upper bound of expected range.}
-#'     \item{in_range}{Logical; whether observed falls within the
-#'       expected range.}
+#'     \item{expected_min}{Lower bound of the plausibility range.}
+#'     \item{expected_max}{Upper bound of the plausibility range.}
+#'     \item{in_range}{Logical; whether the observed value falls
+#'       within the range.}
 #'   }
 #'
 #' @export

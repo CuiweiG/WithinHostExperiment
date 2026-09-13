@@ -311,6 +311,7 @@ setMethod("calcNeutralityTests", "WithinHostExperiment",
              indices = c("tajimaD", "fusFs"),
              usePassedOnly = TRUE, ...) {
     whe <- x
+    .stop_on_unused_dots("calcNeutralityTests", ...)
     indices <- match.arg(indices, several.ok = TRUE)
 
     if (is.null(genomeLength))

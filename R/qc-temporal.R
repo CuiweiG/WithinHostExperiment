@@ -32,10 +32,13 @@ NULL
 #'   consider QC-passed entries.
 #'
 #' @return A \code{\link{WithinHostExperiment}} with updated
-#'   \code{qcPass} assay (transient iSNVs flagged as FALSE) and
-#'   a new column \code{temporal_class} in \code{mcols(rowRanges)}:
-#'   \code{"persistent"}, \code{"transient"}, or \code{NA} (not
-#'   enough data to classify).
+#'   \code{qcPass} assay and a new column \code{temporal_class} in
+#'   \code{mcols(rowRanges)}. Sites are classified within each host;
+#'   a transient site is flagged only in the samples of the hosts
+#'   where it is transient. The site-level \code{temporal_class} is
+#'   \code{"persistent"} if the site is persistent in at least one
+#'   host, \code{"transient"} if it is transient in every host where
+#'   it was detected, and \code{NA} where it was never detected.
 #'
 #' @details
 #' This function implements a QC dimension that is unique to
@@ -101,12 +104,14 @@ flagTemporalInconsistency <- function(whe,
     n_sites <- nrow(freq_mat)
     n_samples <- ncol(freq_mat)
 
-    ## For each site, count how many timepoints it's detected
-    temporal_class <- rep(NA_character_, n_sites)
+    ## For each site and host, count how many timepoints it is detected
     total_flagged <- 0L
 
     ## Group by host
     unique_hosts <- unique(hosts[!is.na(hosts)])
+    class_by_host <- matrix(NA_character_, nrow = n_sites,
+                            ncol = length(unique_hosts),
+                            dimnames = list(NULL, unique_hosts))
 
     for (h in unique_hosts) {
         h_idx <- which(hosts == h)
@@ -146,7 +151,7 @@ flagTemporalInconsistency <- function(whe,
                 is_persistent <- max_run >= minConsecutive
             }
 
-            temporal_class[i] <- if (is_persistent) {
+            class_by_host[i, h] <- if (is_persistent) {
                 "persistent"
             } else {
                 "transient"
@@ -154,15 +159,31 @@ flagTemporalInconsistency <- function(whe,
         }
     }
 
-    ## Flag transient iSNVs in qcPass
+    ## Flag transient iSNVs in the samples of the host where they are
+    ## transient; a site can be transient in one host and persistent in
+    ## another
     qc <- assay(whe, "qcPass")
-    transient_rows <- which(temporal_class == "transient")
-    for (row_i in transient_rows) {
-        newly_flagged <- qc[row_i, ]
-        qc[row_i, ] <- FALSE
+    for (h in unique_hosts) {
+        transient_rows <- which(class_by_host[, h] == "transient")
+        if (!length(transient_rows)) next
+        host_cols <- which(hosts == h & !is.na(hosts))
+        newly_flagged <- qc[transient_rows, host_cols, drop = FALSE]
+        qc[transient_rows, host_cols] <- FALSE
         total_flagged <- total_flagged + sum(newly_flagged)
     }
     assay(whe, "qcPass") <- qc
+
+    ## Site-level summary across hosts
+    temporal_class <- apply(class_by_host, 1L, function(classes) {
+        classes <- classes[!is.na(classes)]
+        if (!length(classes)) {
+            NA_character_
+        } else if (any(classes == "persistent")) {
+            "persistent"
+        } else {
+            "transient"
+        }
+    })
 
     ## Add temporal_class to rowRanges
     rr <- SummarizedExperiment::rowRanges(whe)

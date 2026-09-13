@@ -1,5 +1,32 @@
 # WithinHostExperiment 0.99.0
 
+## Corrections from technical review
+
+* `flagTemporalInconsistency()` classified each site with the last host
+  processed and flagged transient sites in every sample. Sites are now
+  classified within each host and flagged only in the samples of hosts where
+  they are transient.
+* `exactBottleneck(method = "exact_bb")` matched donor variants to rows by
+  position alone, which is wrong for segmented genomes, and paired donor
+  frequencies with recipient read counts by index when some sites did not
+  match. Sites are now matched by chromosome, position and allele. An estimate
+  that reaches `maxNb` triggers a warning.
+* The documentation of `exactBottleneck()` states how `exact_bb` departs from
+  Sobel Leonard et al. (2017) and that `wright_fisher` is a heuristic score.
+* `flagISNV()`, `calcDiversity()` and `calcNeutralityTests()` stop on
+  arguments they do not use.
+* `adaptiveFilter("ont")` uses `minDepth = 60`, the depth above which Bull et
+  al. (2020) found over 99% sensitivity and precision for single-nucleotide
+  variants; it was 30.
+* `correctSFSBias()`, `compareSFS()`, the `WithinHostSFS` bins and depth slot,
+  `consensusISNV()`, `flagReplicateDiscordance()` and `validateDiversity()` are
+  documented as implemented: truncation rescales the whole spectrum, bins are
+  right-closed, the stored depth is a median, the consensus object holds only
+  allele frequencies, and the diversity ranges are heuristic plausibility
+  bounds rather than literature values.
+* `trackFrequency()` builds its table in one vectorised step, which is much
+  faster on genome-wide data and gives the same rows.
+
 ## New features
 
 * `WithinHostExperiment` S4 class extending
