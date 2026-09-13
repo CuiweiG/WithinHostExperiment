@@ -32,6 +32,18 @@ utils::globalVariables(".data")
     gray      = "#999999"
 )
 
+## An inside legend is placed with legend.position.inside from ggplot2 3.5.0;
+## earlier versions take the coordinates in legend.position.
+#' @keywords internal
+.legend_inside <- function(x, y) {
+    if (utils::packageVersion("ggplot2") >= "3.5.0") {
+        ggplot2::theme(legend.position = "inside",
+                       legend.position.inside = c(x, y))
+    } else {
+        ggplot2::theme(legend.position = c(x, y))
+    }
+}
+
 ## Nature/Science base theme -- Arial/Helvetica, no gridlines,
 ## white background, minimal chrome
 #' @keywords internal
@@ -214,14 +226,14 @@ plotFrequencySpectrum <- function(whe,
     p <- p +
         ggplot2::scale_x_continuous(
             name = "Alternative allele frequency (%)",
-            limits = x_lim,
             breaks = x_breaks,
             labels = function(x) as.integer(x * 100)) +
+        ## Clip the view rather than dropping data, which would warn
+        ggplot2::coord_cartesian(xlim = x_lim) +
         ggplot2::ggtitle(NULL) +
         .theme_pub(base_size = 9) +
-        ggplot2::theme(
-            legend.position = c(0.85, 0.90),
-            legend.justification = c(0.5, 1))
+        .legend_inside(0.85, 0.90) +
+        ggplot2::theme(legend.justification = c(0.5, 1))
 
     if (!is.null(facetBy) &&
         facetBy %in% colnames(colData(whe))) {
@@ -239,8 +251,8 @@ plotFrequencySpectrum <- function(whe,
                 alpha = 0.8) +
             ggplot2::scale_x_continuous(
                 name = "Alternative allele frequency (%)",
-                limits = x_lim,
                 labels = function(x) as.integer(x * 100)) +
+            ggplot2::coord_cartesian(xlim = x_lim) +
             ggplot2::labs(y = "Number of iSNVs") +
             ggplot2::facet_wrap(
                 stats::as.formula(paste("~", facetBy)),
@@ -363,17 +375,18 @@ plotPairScatter <- function(whe, pairId, threshold = 0.03) {
             values = cat_shapes, labels = cat_labels) +
         ggplot2::scale_x_continuous(
             name = "Donor frequency (%)",
-            limits = c(0, max(c(d_freq, r_freq)) * 1.1 + 0.02),
             labels = function(x) as.integer(x * 100)) +
         ggplot2::scale_y_continuous(
             name = "Recipient frequency (%)",
-            limits = c(0, max(c(d_freq, r_freq)) * 1.1 + 0.02),
             labels = function(x) as.integer(x * 100)) +
-        ggplot2::coord_equal() +
+        ## Clip the view rather than dropping jittered points
+        ggplot2::coord_equal(
+            xlim = c(0, max(c(d_freq, r_freq)) * 1.1 + 0.02),
+            ylim = c(0, max(c(d_freq, r_freq)) * 1.1 + 0.02)) +
         ggplot2::ggtitle(NULL) +
         .theme_pub(base_size = 9) +
+        .legend_inside(0.98, 0.98) +
         ggplot2::theme(
-            legend.position = c(0.98, 0.98),
             legend.justification = c(1, 1),
             legend.title = ggplot2::element_blank(),
             legend.key.size = ggplot2::unit(10, "pt"),
@@ -469,14 +482,13 @@ plotQCDashboard <- function(whe) {
     pA <- pA +
         ggplot2::scale_x_continuous(
             name = "Alternative allele frequency (%)",
-            limits = x_lim_d,
             labels = function(x) as.integer(x * 100)) +
+        ggplot2::coord_cartesian(xlim = x_lim_d) +
         ggplot2::labs(y = "Number of iSNVs",
                       title = expression(bold("a"))) +
         .theme_pub(base_size = bs) +
-        ggplot2::theme(
-            legend.position = c(0.82, 0.88),
-            legend.key.size = ggplot2::unit(7, "pt"))
+        .legend_inside(0.82, 0.88) +
+        ggplot2::theme(legend.key.size = ggplot2::unit(7, "pt"))
 
     ## ---- Panel B: Depth distribution ----
     if (!is.null(depth_mat)) {
@@ -625,9 +637,8 @@ plotQCDashboard <- function(whe) {
             ggplot2::labs(x = NULL, y = "Number of iSNVs",
                           title = expression(bold("d"))) +
             .theme_pub(base_size = bs) +
-            ggplot2::theme(
-                legend.position = c(0.85, 0.88),
-                legend.key.size = ggplot2::unit(7, "pt"))
+            .legend_inside(0.85, 0.88) +
+            ggplot2::theme(legend.key.size = ggplot2::unit(7, "pt"))
     } else {
         ## Many samples: histogram of iSNVs per sample
         site_df <- data.frame(n = n_total,

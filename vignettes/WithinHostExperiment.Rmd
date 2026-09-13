@@ -412,12 +412,14 @@ cat("Shared:", sv$n_shared, "/ Donor-only:", sv$n_donor_only,
     "/ Recipient-only:", sv$n_recipient_only, "\n")
 ```
 
-# Multi-pathogen validation
+# Other pathogens
 
-To demonstrate generalisability beyond SARS-CoV-2, we validate
-diversity estimates against literature-reported ranges for three
-additional pathogens using synthetic data calibrated to published
-values.
+To show that the workflow is not specific to SARS-CoV-2, we run it on
+small synthetic example files for three further pathogens and check the
+diversity estimates against the plausibility ranges of
+`validateDiversity()`. The files are illustrative fixtures, not
+measurements, and the ranges are the package's own heuristics, so these
+sections demonstrate the interface rather than validate the estimates.
 
 ## Influenza A (H3N2 HA segment)
 
@@ -678,10 +680,10 @@ raw_p <- c(0.001, 0.04, 0.03, 0.5)
 multitestCorrection(raw_p)
 ```
 
-## Literature-range validation
+## Plausibility check
 
-Cross-check observed diversity against expected ranges for a
-given pathogen:
+Cross-check observed diversity against the package's plausibility
+range for a given pathogen:
 
 ```{r validate}
 div_check <- S4Vectors::DataFrame(pi = 1e-4, shannon = 5.0)

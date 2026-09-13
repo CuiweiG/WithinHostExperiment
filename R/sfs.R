@@ -599,7 +599,8 @@ plotSFS <- function(sfs, normalize = FALSE) {
             position = "dodge",
             width = diff(sfs[[1]]@breaks)[1] * 100 * 0.85) +
             ggplot2::scale_fill_manual(name = NULL,
-                values = unlist(.whe_pal[seq_len(n_samples)]))
+                values = rep(unlist(.whe_pal, use.names = FALSE),
+                             length.out = n_samples))
     }
 
     p <- p +

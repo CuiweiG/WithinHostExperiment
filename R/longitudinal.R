@@ -255,7 +255,8 @@ detectEmergingVariants <- function(whe,
 #'
 #' Creates a ggplot2 spaghetti plot of allele frequency over time
 #' for each variant within a specified host. Each line represents
-#' one variant.
+#' one variant, coloured with the Okabe-Ito palette (Wong 2011);
+#' with more than eight variants the colours repeat.
 #'
 #' @param whe A \code{\link{WithinHostExperiment}} with longitudinal
 #'   samples.
@@ -317,6 +318,9 @@ plotFrequencyTrajectory <- function(whe, hostId,
             group = .data$variant_key)) +
         ggplot2::geom_line(linewidth = 0.6, alpha = 0.7) +
         ggplot2::geom_point(size = 1.5, alpha = 0.9) +
+        ggplot2::scale_colour_manual(
+            values = rep(unlist(.whe_pal, use.names = FALSE),
+                         length.out = length(unique(plot_df$variant_key)))) +
         ggplot2::scale_y_continuous(
             name = "Alternative allele frequency",
             limits = c(0, NA)) +

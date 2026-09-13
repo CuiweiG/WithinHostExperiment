@@ -26,6 +26,11 @@
   bounds rather than literature values.
 * `trackFrequency()` builds its table in one vectorised step, which is much
   faster on genome-wide data and gives the same rows.
+* `plotFrequencySpectrum()`, `plotPairScatter()` and `plotQCDashboard()` clip the
+  view with coordinate limits instead of removing data outside the axis range,
+  which dropped jittered points with a warning; `plotFrequencyTrajectory()`
+  uses the Okabe-Ito palette, as described, and `plotSFS()` recycles it for
+  more than eight samples.
 
 ## New features
 
@@ -124,5 +129,5 @@
   `plotPairScatter()`, `plotQCDashboard()`, and
   `plotFrequencyTrajectory()` with a colour-blind-safe palette
   (Wong 2011).
-* SARS-CoV-2 case study in vignette with multi-pathogen
-  validation (Influenza A, HIV-1, M. tuberculosis).
+* SARS-CoV-2 case study in the vignette, with the same workflow run on
+  synthetic examples for influenza A, HIV-1 and M. tuberculosis.
