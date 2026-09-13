@@ -31,8 +31,9 @@ between replicates and flags sites where the difference exceeds
 \code{freqTolerance}. Sites are flagged in ALL samples of the
 replicate group.
 
-Roder et al. (2023) demonstrated that replicate sequencing has
-the most significant impact on iSNV discovery accuracy. An
+Roder et al. (2023) reported that the choice of variant caller and
+the use of replicate sequencing had the largest effects on
+single-nucleotide variant discovery. An
 alternative approach is replicate intersection (requiring
 detection in both replicates); use \code{requireBothDetected =
 TRUE} with \code{freqTolerance = Inf} to achieve this.

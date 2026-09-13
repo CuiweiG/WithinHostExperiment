@@ -31,9 +31,10 @@ NULL
 #'
 #' @slot counts Integer vector. Number of iSNVs in each frequency
 #'   bin. Length equals \code{length(breaks) - 1}.
-#' @slot breaks Numeric vector. Bin boundaries (left-closed,
-#'   right-open except the last bin). Default: 20 equal bins
-#'   from 0 to 1.
+#' @slot breaks Numeric vector. Bin boundaries. Bins are
+#'   right-closed, and the lowest break is included in the first
+#'   bin. Default: 20 equal bins from the detection threshold to
+#'   the maximum frequency.
 #' @slot folded Logical scalar. If \code{TRUE}, the SFS is folded
 #'   (minor allele frequency); if \code{FALSE}, unfolded
 #'   (derived allele frequency).
@@ -41,7 +42,8 @@ NULL
 #' @slot genomeLength Integer scalar. Reference genome length.
 #' @slot nSites Integer scalar. Total number of variant sites
 #'   used to build the SFS.
-#' @slot meanDepth Numeric scalar. Mean sequencing depth.
+#' @slot meanDepth Numeric scalar. Typical sequencing depth;
+#'   \code{\link{buildSFS}} stores the median depth across sites.
 #' @slot threshold Numeric scalar. Detection threshold applied
 #'   (e.g., 0.03). Sites below this are unobservable.
 #' @slot corrected Logical scalar. Whether ascertainment bias
@@ -247,22 +249,30 @@ buildSFSList <- function(whe, nBins = 20L, fold = TRUE,
 #'
 #' @param sfs A \code{\link{WithinHostSFS}} object.
 #' @param method Character. Correction method:
-#'   \code{"truncation"} (default) adjusts the monomorphic site
-#'   count to account for variants below threshold;
+#'   \code{"truncation"} (default) rescales the whole spectrum for
+#'   the unobservable part of the frequency range;
 #'   \code{"binomial"} models the probability of detecting a
 #'   variant at each frequency given the read depth.
 #'
 #' @return A corrected \code{\link{WithinHostSFS}} with
-#'   \code{corrected = TRUE}.
+#'   \code{corrected = TRUE}. Counts are no longer raw variant
+#'   counts, and \code{nSites} changes accordingly, which also
+#'   changes the number of segregating sites used by
+#'   \code{\link{neutralityFromSFS}}. Use uncorrected spectra for
+#'   \code{\link{compareSFS}}.
 #'
 #' @details
-#' The \code{"truncation"} method assumes the SFS below the
-#' threshold follows the same shape as the observable portion and
-#' scales the monomorphic count accordingly. The \code{"binomial"}
-#' method uses the mean depth to compute
+#' The \code{"truncation"} method assumes a uniform density of
+#' variant frequencies and multiplies every bin by
+#' \eqn{f_{max} / (f_{max} - \mathrm{threshold})}, the reciprocal of
+#' the observable fraction of the frequency range. It therefore
+#' rescales the spectrum without changing its shape. The
+#' \code{"binomial"} method uses the stored depth to compute
 #' \eqn{P(\mathrm{detect} | \nu, n) = P(\mathrm{Alt} \ge k_{\min} | n, \nu)}{P(detect|freq,depth)}
 #' where \eqn{k_{\min} = \lceil n \times \mathrm{threshold} \rceil}{k_min = ceil(n*threshold)},
 #' and reweights each bin by the inverse of its detectability.
+#' Detectability is floored at 0.01, so a bin is inflated at most
+#' one hundredfold.
 #'
 #' @export
 #' @examples
@@ -459,6 +469,13 @@ neutralityFromSFS <- function(sfs, n = NULL) {
 #' homogeneity between two \code{\link{WithinHostSFS}} objects
 #' (e.g., before vs. after QC, or two timepoints).
 #'
+#' The test compares raw variant counts, so apply it to
+#' uncorrected spectra: the counts of a bias-corrected spectrum are
+#' rescaled and no longer multinomial. Bins where both spectra are
+#' empty are dropped, and the chi-squared approximation is
+#' unreliable when the remaining bins hold few variants; its
+#' warnings are suppressed, so check the bin counts.
+#'
 #' @param sfs1 A \code{\link{WithinHostSFS}} object.
 #' @param sfs2 A \code{\link{WithinHostSFS}} object (same binning).
 #'
@@ -582,7 +599,8 @@ plotSFS <- function(sfs, normalize = FALSE) {
             position = "dodge",
             width = diff(sfs[[1]]@breaks)[1] * 100 * 0.85) +
             ggplot2::scale_fill_manual(name = NULL,
-                values = unlist(.whe_pal[seq_len(n_samples)]))
+                values = rep(unlist(.whe_pal, use.names = FALSE),
+                             length.out = n_samples))
     }
 
     p <- p +

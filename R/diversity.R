@@ -252,6 +252,7 @@ setMethod("calcDiversity", "WithinHostExperiment",
              genomeLength = NULL,
              usePassedOnly = TRUE, ...) {
     whe <- x
+    .stop_on_unused_dots("calcDiversity", ...)
     indices <- match.arg(indices, several.ok = TRUE)
 
     needs_L <- any(c("pi", "watterson") %in% indices)

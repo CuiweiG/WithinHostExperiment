@@ -33,7 +33,8 @@ A ggplot object.
 \description{
 Creates a ggplot2 spaghetti plot of allele frequency over time
 for each variant within a specified host. Each line represents
-one variant.
+one variant, coloured with the Okabe-Ito palette (Wong 2011);
+with more than eight variants the colours repeat.
 }
 \examples{
 if (requireNamespace("ggplot2", quietly = TRUE)) {

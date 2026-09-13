@@ -10,14 +10,18 @@ correctSFSBias(sfs, method = c("truncation", "binomial"))
 \item{sfs}{A \code{\link{WithinHostSFS}} object.}
 
 \item{method}{Character. Correction method:
-\code{"truncation"} (default) adjusts the monomorphic site
-count to account for variants below threshold;
+\code{"truncation"} (default) rescales the whole spectrum for
+the unobservable part of the frequency range;
 \code{"binomial"} models the probability of detecting a
 variant at each frequency given the read depth.}
 }
 \value{
 A corrected \code{\link{WithinHostSFS}} with
-  \code{corrected = TRUE}.
+  \code{corrected = TRUE}. Counts are no longer raw variant
+  counts, and \code{nSites} changes accordingly, which also
+  changes the number of segregating sites used by
+  \code{\link{neutralityFromSFS}}. Use uncorrected spectra for
+  \code{\link{compareSFS}}.
 }
 \description{
 Deep sequencing imposes a detection threshold (e.g., 3\%): sites
@@ -32,13 +36,17 @@ given the observed SFS and depth-dependent detectability, it
 estimates the missing mass in the lowest frequency bins.
 
 
-The \code{"truncation"} method assumes the SFS below the
-threshold follows the same shape as the observable portion and
-scales the monomorphic count accordingly. The \code{"binomial"}
-method uses the mean depth to compute
+The \code{"truncation"} method assumes a uniform density of
+variant frequencies and multiplies every bin by
+\eqn{f_{max} / (f_{max} - \mathrm{threshold})}, the reciprocal of
+the observable fraction of the frequency range. It therefore
+rescales the spectrum without changing its shape. The
+\code{"binomial"} method uses the stored depth to compute
 \eqn{P(\mathrm{detect} | \nu, n) = P(\mathrm{Alt} \ge k_{\min} | n, \nu)}{P(detect|freq,depth)}
 where \eqn{k_{\min} = \lceil n \times \mathrm{threshold} \rceil}{k_min = ceil(n*threshold)},
 and reweights each bin by the inverse of its detectability.
+Detectability is floored at 0.01, so a bin is inflated at most
+one hundredfold.
 }
 \examples{
 vcf <- system.file("extdata", "test_donor.vcf",

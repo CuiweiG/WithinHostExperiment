@@ -30,9 +30,10 @@ metadata needed for population-genetic inference.
 \item{\code{counts}}{Integer vector. Number of iSNVs in each frequency
 bin. Length equals \code{length(breaks) - 1}.}
 
-\item{\code{breaks}}{Numeric vector. Bin boundaries (left-closed,
-right-open except the last bin). Default: 20 equal bins
-from 0 to 1.}
+\item{\code{breaks}}{Numeric vector. Bin boundaries. Bins are
+right-closed, and the lowest break is included in the first
+bin. Default: 20 equal bins from the detection threshold to
+the maximum frequency.}
 
 \item{\code{folded}}{Logical scalar. If \code{TRUE}, the SFS is folded
 (minor allele frequency); if \code{FALSE}, unfolded
@@ -45,7 +46,8 @@ from 0 to 1.}
 \item{\code{nSites}}{Integer scalar. Total number of variant sites
 used to build the SFS.}
 
-\item{\code{meanDepth}}{Numeric scalar. Mean sequencing depth.}
+\item{\code{meanDepth}}{Numeric scalar. Typical sequencing depth;
+\code{\link{buildSFS}} stores the median depth across sites.}
 
 \item{\code{threshold}}{Numeric scalar. Detection threshold applied
 (e.g., 0.03). Sites below this are unobservable.}

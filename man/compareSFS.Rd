@@ -28,6 +28,14 @@ Computes summary statistics and a chi-squared test for
 homogeneity between two \code{\link{WithinHostSFS}} objects
 (e.g., before vs. after QC, or two timepoints).
 }
+\details{
+The test compares raw variant counts, so apply it to
+uncorrected spectra: the counts of a bias-corrected spectrum are
+rescaled and no longer multinomial. Bins where both spectra are
+empty are dropped, and the chi-squared approximation is
+unreliable when the remaining bins hold few variants; its
+warnings are suppressed, so check the bin counts.
+}
 \examples{
 data(example_whe)
 whe1 <- example_whe

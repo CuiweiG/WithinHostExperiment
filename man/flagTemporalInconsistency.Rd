@@ -38,10 +38,13 @@ consider QC-passed entries.}
 }
 \value{
 A \code{\link{WithinHostExperiment}} with updated
-  \code{qcPass} assay (transient iSNVs flagged as FALSE) and
-  a new column \code{temporal_class} in \code{mcols(rowRanges)}:
-  \code{"persistent"}, \code{"transient"}, or \code{NA} (not
-  enough data to classify).
+  \code{qcPass} assay and a new column \code{temporal_class} in
+  \code{mcols(rowRanges)}. Sites are classified within each host;
+  a transient site is flagged only in the samples of the hosts
+  where it is transient. The site-level \code{temporal_class} is
+  \code{"persistent"} if the site is persistent in at least one
+  host, \code{"transient"} if it is transient in every host where
+  it was detected, and \code{NA} where it was never detected.
 }
 \description{
 For longitudinal samples from the same host, identifies iSNVs

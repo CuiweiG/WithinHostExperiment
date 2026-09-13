@@ -34,15 +34,16 @@ default thresholds:
     Lauring 2016).
   }
   \item{\strong{Oxford Nanopore (ONT)} (\code{minFreq = 0.10,
-    minDepth = 30, maxStrandBias = Inf})}{
+    minDepth = 60, maxStrandBias = Inf})}{
     ONT reads have higher per-base error rates (~1--5\% with R10
     chemistry), requiring a more conservative frequency threshold
     of 10\% to avoid false positives; Bull et al. (2020) found that
     ONT sequencing does not accurately detect variants at low
-    read-count frequencies. Lower depth thresholds reflect typical amplicon
-    yields. Strand bias filtering is disabled (\code{Inf}) because
-    ONT library preparation does not preserve strand information
-    in a way that is informative for variant validation.
+    read-count frequencies, and reported over 99\% sensitivity and
+    precision for single-nucleotide variants above about 60-fold
+    depth, which sets the depth threshold. Strand bias filtering is
+    disabled (\code{Inf}) rather than given an untested threshold;
+    supply \code{maxStrandBias} explicitly when the data support one.
   }
   \item{\strong{PacBio HiFi} (\code{minFreq = 0.05, minDepth = 50})}{
     HiFi consensus reads reach about 99.8\% read accuracy via

@@ -9,12 +9,22 @@ NULL
 #'
 #' Estimates transmission bottleneck size using one of three methods:
 #' \describe{
-#'   \item{\code{exact_bb}}{Exact beta-binomial MLE that models
-#'     finite sequencing depth per Sobel Leonard et al. (2017).
-#'     Requires \code{altCount} and \code{totalDepth} assays.}
-#'   \item{\code{wright_fisher}}{Wright-Fisher drift simulation via
-#'     binomial sampling, estimating Nb by matching expected and
-#'     observed recipient variant frequencies.}
+#'   \item{\code{exact_bb}}{Beta-binomial likelihood over the number
+#'     of transmitted variant virions, which models finite recipient
+#'     read depth, in the spirit of Sobel Leonard et al. (2017).
+#'     Requires \code{altCount} and \code{totalDepth} assays. Two
+#'     deviations from the published method are deliberate: when all
+#'     or none of the transmitted virions carry the variant, the
+#'     recipient read counts are modelled with a fixed sequencing
+#'     error probability of \code{threshold / 2}, and the recipient
+#'     detection threshold is not integrated out.}
+#'   \item{\code{wright_fisher}}{Approximate score in which one
+#'     generation of binomial drift is combined with a beta kernel of
+#'     concentration \code{max(Nb, 2)} around the drifted frequency.
+#'     It mixes a density for detected variants with probabilities for
+#'     lost variants, so it is a heuristic rather than a likelihood;
+#'     prefer \code{exact_bb} or \code{presence_absence} for
+#'     inference.}
 #'   \item{\code{presence_absence}}{Presence-absence likelihood using
 #'     \eqn{P(\mathrm{detect} | Nb, \nu) = 1 - (1-\nu)^{Nb}}{P(detect|Nb,freq) = 1-(1-freq)^Nb}.}
 #' }
@@ -27,15 +37,21 @@ NULL
 #' @param method Character. One of \code{"exact_bb"},
 #'   \code{"wright_fisher"}, or \code{"presence_absence"}.
 #' @param nboot Integer. Number of bootstrap replicates for
-#'   confidence intervals (default: 0, uses likelihood-ratio CI).
+#'   confidence intervals (default: 0, uses a likelihood-ratio
+#'   interval). Bootstrapping resamples variant sites and uses the
+#'   random number generator, so set a seed for reproducible
+#'   intervals.
 #' @param threshold Numeric. Variant calling threshold (default: 0.03).
 #'
 #' @return A named list with components:
 #' \describe{
 #'   \item{\code{Nb}}{Numeric. Maximum likelihood estimate of
-#'     bottleneck size.}
+#'     bottleneck size over the grid \code{1:maxNb}. A warning is
+#'     issued when the estimate reaches \code{maxNb}, because the
+#'     value is then censored by the grid.}
 #'   \item{\code{ci}}{Numeric vector of length 2. 95\% confidence
-#'     interval (likelihood-ratio or bootstrap percentile).}
+#'     interval (likelihood-ratio or bootstrap percentile), also
+#'     bounded by \code{maxNb}.}
 #'   \item{\code{loglik}}{Numeric. Log-likelihood at the MLE.}
 #'   \item{\code{method}}{Character. Method used.}
 #'   \item{\code{n_variants}}{Integer. Number of donor variants used.}
@@ -300,18 +316,29 @@ exactBottleneck <- function(whe, pairId, maxNb = 500L,
     alt_mat   <- assay(whe, "altCount")
     depth_mat <- assay(whe, "totalDepth")
 
-    ## Map vb_input positions back to WHE row indices
+    ## Re-derive the same donor variants with their chromosome and allele,
+    ## so that rows are matched exactly; matching on position alone is
+    ## wrong for segmented genomes
+    pf <- exportPairFrequencies(whe, pairId = pairId)
+    pf <- pf[!is.na(pf$donor_freq) & pf$donor_freq >= threshold, ,
+             drop = FALSE]
     rr  <- rowRanges(whe)
-    pos <- GenomicRanges::start(rr)
-    chr <- as.character(GenomeInfoDb::seqnames(rr))
-    vb_pos <- vb_input$pos
-
-    ## Match positions (simplified: assumes unique positions)
-    row_idx <- vapply(vb_pos, function(p) {
-        hits <- which(pos == p)
-        if (length(hits) == 0L) NA_integer_ else hits[1L]
-    }, integer(1))
-    row_idx <- row_idx[!is.na(row_idx)]
+    row_alt <- if ("alt" %in% colnames(S4Vectors::mcols(rr))) {
+        as.character(S4Vectors::mcols(rr)$alt)
+    } else {
+        rep(NA_character_, length(rr))
+    }
+    row_keys <- paste(as.character(GenomeInfoDb::seqnames(rr)),
+                      GenomicRanges::start(rr), row_alt, sep = ":")
+    site_keys <- paste(as.character(pf$chrom), pf$position,
+                       as.character(pf$alt), sep = ":")
+    row_idx <- match(site_keys, row_keys)
+    matched <- !is.na(row_idx)
+    if (any(!matched))
+        warning(sum(!matched), " donor variant site(s) could not be ",
+                "matched to rows of the object and were dropped.",
+                call. = FALSE)
+    row_idx <- row_idx[matched]
 
     r_alt   <- as.integer(alt_mat[row_idx, r_col])
     r_depth <- as.integer(depth_mat[row_idx, r_col])
@@ -322,7 +349,7 @@ exactBottleneck <- function(whe, pairId, maxNb = 500L,
     ## Ensure alt does not exceed depth
     r_alt <- pmin(r_alt, r_depth)
 
-    list(donor_freq      = d_freqs[seq_along(row_idx)],
+    list(donor_freq      = as.numeric(pf$donor_freq[matched]),
          recipient_alt   = r_alt,
          recipient_depth = r_depth,
          n               = length(row_idx))
@@ -336,6 +363,10 @@ exactBottleneck <- function(whe, pairId, maxNb = 500L,
     mle_idx <- which.max(ll_vals)
     nb_mle  <- mle_idx
     max_ll  <- ll_vals[mle_idx]
+    if (nb_mle == maxNb)
+        warning("The maximum likelihood estimate reached maxNb (", maxNb,
+                "); the bottleneck size is censored by the grid. ",
+                "Increase maxNb.", call. = FALSE)
 
     if (nboot > 0L) {
         ci <- .bootstrapCI(nboot, maxNb, n_var, method, ...)

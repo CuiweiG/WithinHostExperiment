@@ -21,7 +21,8 @@ NULL
 #' @param x A \code{\link{WithinHostExperiment}} object.
 #' @param filter An \code{\link{ISNVFilter}} object (default:
 #'   \code{ISNVFilter()}).
-#' @param ... Additional arguments (currently unused).
+#' @param ... Must be empty. Any further argument is an error, so that a
+#'   misspelled argument name cannot be silently ignored.
 #'
 #' @return A \code{\link{WithinHostExperiment}} with updated
 #'   \code{qcPass} assay and \code{qcLog}.
@@ -57,6 +58,7 @@ NULL
 setMethod("flagISNV", "WithinHostExperiment",
     function(x, filter = ISNVFilter(), ...) {
     whe <- x
+    .stop_on_unused_dots("flagISNV", ...)
     if (!is(filter, "ISNVFilter"))
         stop("'filter' must be an ISNVFilter object. ",
              "Create one with ISNVFilter().")

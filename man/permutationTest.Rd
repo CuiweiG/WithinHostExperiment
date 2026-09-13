@@ -13,7 +13,9 @@ index).}
 \item{groups}{Factor or character vector (same length as
 \code{values}). Must contain exactly two unique levels.}
 
-\item{n_perm}{Integer scalar. Number of permutations (default: 999).}
+\item{n_perm}{Integer scalar. Number of permutations (default: 999).
+Permutation uses the random number generator, so set a seed for
+a reproducible p-value.}
 
 \item{statistic}{Character scalar. The test statistic to compute:
 \code{"mean_diff"} (default) for difference in group means.}
