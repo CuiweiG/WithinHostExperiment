@@ -1,5 +1,5 @@
 # R/modeling.R
-# Statistical modeling helpers for diversity data
+# Statistical modelling helpers for diversity data
 
 #' @importFrom stats lm p.adjust coef residuals as.formula terms update
 NULL

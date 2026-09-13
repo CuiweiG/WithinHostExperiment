@@ -6,11 +6,11 @@ Authors@R:
     email = "48gaocuiwei@gmail.com",
     role = c("aut", "cre"))
 Description: Provides a SummarizedExperiment-based container and
-    workflow functions for analyzing intra-host single nucleotide
+    workflow functions for analysing intra-host single nucleotide
     variants (iSNV) from pathogen deep sequencing data. Supports
     replicate-aware quality control with full provenance tracking,
-    multi-caller import harmonization, within-host diversity
-    quantification, and standardized export to transmission bottleneck
+    multi-caller import harmonisation, within-host diversity
+    quantification, and standardised export to transmission bottleneck
     estimation tools. Designed as infrastructure that bridges upstream
     variant callers (iVar, LoFreq, Freebayes) with downstream analysis
     packages through a common data object with uncertainty-preserving QC.

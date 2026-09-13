@@ -41,10 +41,10 @@ functions covering the complete workflow from import to publication.
 
 All figures use real, publicly available data:
 
-| Dataset | Reference | Role |
+| Source | Data | Role |
 |---------|-----------|------|
-| **McCrone *et al.* (2023)** *Nat. Commun.* 14:235 | 159 iSNVs, 83 samples, duplicate sequencing, 132 transmission pairs | QC, diversity, transmission, population genetics (Figs 1--3, 5--6) |
-| **Farjo *et al.* (2022)** bioRxiv, Brooke Lab | 1 patient, **9 timepoints**, iVar output | Longitudinal within-host evolution (Fig 4) |
+| **Bendall *et al.* (2023)** *Nat. Commun.* 14:272 | 159 iSNVs, 83 samples, duplicate sequencing, 132 transmission pairs | QC, diversity, transmission, population genetics (Figs 1--3, 5--6) |
+| **Farjo *et al.* (2024)** *J. Virol.* 98:e01618-23 | 1 patient, **9 timepoints**, iVar output | Longitudinal within-host evolution (Fig 4) |
 | **NCBI RefSeq** NC_045512.2 GFF3 | SARS-CoV-2 gene annotation | `annotateFromGFF()` demo (Figs 3b, 4d) |
 
 All figures were generated locally in R 4.5.3 via
@@ -103,7 +103,7 @@ All figures were generated locally in R 4.5.3 via
 
 > **Figure 4 | Nine days of within-host evolution.**
 > One SARS-CoV-2 patient sampled across 9 timepoints
-> (Farjo *et al.* 2022).
+> (Farjo *et al.* 2024).
 > **(a)** Diversity arc: richness (bars) and pi (red line) peak at
 > day 8 with 286 QC-passed iSNVs.
 > **(b)** Frequency trajectories of the 10 most dynamic variants --
@@ -197,11 +197,11 @@ nb <- quickBottleneck(whe, pairId = "pair_1")
 
 1. **Flag, don't delete.** QC marks variants in `qcPass` rather than
    removing rows, preserving all data for re-analysis under different
-   thresholds (Cavallo *et al.* 2023).
+   thresholds.
 2. **Replicate-aware.** Technical replicate concordance is a
    first-class QC criterion, not a post-hoc script.
 3. **Interoperable, don't reinvent.** Standardised export to
-   ViralBottleneck (Archaman *et al.* 2025) and VRanges-based
+   ViralBottleneck (Zheng *et al.* 2025) and VRanges-based
    Bioconductor workflows.
 4. **Bioconductor-native.** Built on `RangedSummarizedExperiment`;
    subsetting, combining, and accessors follow Bioconductor
@@ -230,28 +230,30 @@ Data files in `inst/scripts/real_data/` (GitHub only, not in installed package):
 
 | File | Source | Description |
 |------|--------|-------------|
-| `all_variants_filtered.tsv` | McCrone *et al.* 2023 | 159 iSNV calls, 83 samples, both replicates |
-| `AvgCoverage.all` | McCrone *et al.* 2023 | Per-replicate mean amplicon depth, 188 samples |
-| `Transmission_pairs.csv` | McCrone *et al.* 2023 | Household transmission pair metadata |
-| `farjo_longitudinal/` | Farjo *et al.* 2022 | 9-timepoint iVar TSVs, patient 432870 |
+| `all_variants_filtered.tsv` | Bendall *et al.* 2023 | 159 iSNV calls, 83 samples, both replicates |
+| `AvgCoverage.all` | Bendall *et al.* 2023 | Per-replicate mean amplicon depth, 188 samples |
+| `Transmission_pairs.csv` | Bendall *et al.* 2023 | Household transmission pair metadata |
+| `farjo_longitudinal/` | Farjo *et al.* 2024 | 9-timepoint iVar TSVs, patient 432870 |
 | `sars2_NC045512.gff3` | NCBI RefSeq | SARS-CoV-2 gene annotation (NC_045512.2) |
 
 ## Key references
 
-- Farjo M *et al.* (2022) Within-host evolutionary dynamics and
+- Farjo M *et al.* (2024) Within-host evolutionary dynamics and
   tissue compartmentalization during acute SARS-CoV-2 infection.
-  *bioRxiv*. doi:10.1101/2022.06.21.497047.
-- Cavallo I *et al.* (2023) Optimized quantification of intra-host
-  viral diversity. *mSphere* 8:e00173-23.
-- McCrone JT *et al.* (2023) Rapid transmission and tight bottlenecks
+  *J. Virol.* 98:e01618-23.
+- Roder AE *et al.* (2023) Optimized quantification of intra-host
+  viral diversity in SARS-CoV-2 and influenza virus sequence data.
+  *mBio* 14:e01046-23.
+- Bendall EE *et al.* (2023) Rapid transmission and tight bottlenecks
   constrain the evolution of highly transmissible SARS-CoV-2 variants.
-  *Nat. Commun.* 14:235.
+  *Nat. Commun.* 14:272.
 - Sobel Leonard A *et al.* (2017) Transmission bottleneck size
   estimation from pathogen deep-sequencing data. *J Virol*
   91:e00171-17.
-- Farkas C *et al.* (2024) Refining SARS-CoV-2 intra-host variation
-  calling. *NAR Genomics Bioinformatics* 6:lqae145.
-- Archaman B *et al.* (2025) ViralBottleneck: an R package for
+- Mostefai F *et al.* (2024) Refining SARS-CoV-2 intra-host variation
+  by leveraging large-scale sequencing data. *NAR Genom. Bioinform.*
+  6:lqae145.
+- Zheng B, Johnson PCD, Hughes J (2025) ViralBottleneck: an R package for
   estimating viral transmission bottlenecks. *Virus Evolution*
   11:veaf071.
 - Tajima F (1989) Statistical method for testing the neutral mutation

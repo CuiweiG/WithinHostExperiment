@@ -1,5 +1,5 @@
 # R/strand-bias.R
-# SCI-aware strand bias metric (Farkas et al. 2024)
+# Strand coverage imbalance (SCI) score for strand bias
 
 #' @include methods.R
 #' @importFrom SummarizedExperiment assay assay<- assayNames
@@ -12,10 +12,12 @@ NULL
 
 #' Strand Coverage Imbalance (SCI) score
 #'
-#' Computes the SCI strand bias metric described in Farkas et al.
-#' (2024). The score normalises the per-site forward/reverse ratio
-#' by the global strand coverage ratio, making it suitable for
-#' amplicon data where strand coverage is inherently unequal.
+#' Computes a strand bias score that normalises the per-site
+#' forward/reverse alternative-allele ratio by the global strand
+#' coverage ratio, making it suitable for amplicon data where strand
+#' coverage is inherently unequal. Mostefai et al. (2024) showed that
+#' strand bias filters which ignore this imbalance can discard genuine
+#' variants; their own metric is a per-strand binomial likelihood.
 #'
 #' @param fwd_alt Numeric vector. Forward-strand alternative allele
 #'   read counts.
@@ -41,7 +43,7 @@ NULL
 #' by zero.
 #'
 #' @references
-#' Farkas C et al. (2024). Refining SARS-CoV-2 intra-host
+#' Mostefai F et al. (2024). Refining SARS-CoV-2 intra-host
 #' variation by leveraging large-scale sequencing data.
 #' \emph{NAR Genomics and Bioinformatics} 6:lqae145.
 #' \doi{10.1093/nargab/lqae145}
@@ -96,14 +98,14 @@ sciStrandBias <- function(fwd_alt, rev_alt, fwd_total, rev_total) {
 #'
 #' @details
 #' Unlike the simple fold-difference strand bias in
-#' \code{\link{flagISNV}}, this function uses the SCI metric from
-#' Farkas et al. (2024) which normalises by the global strand
-#' coverage ratio. This is preferred for amplicon-based sequencing
+#' \code{\link{flagISNV}}, this function uses the SCI score, which
+#' normalises by the global strand coverage ratio (see
+#' \code{\link{sciStrandBias}}). This is preferred for amplicon-based sequencing
 #' where forward and reverse strand coverage is inherently
 #' unbalanced.
 #'
 #' @references
-#' Farkas C et al. (2024). Refining SARS-CoV-2 intra-host
+#' Mostefai F et al. (2024). Refining SARS-CoV-2 intra-host
 #' variation by leveraging large-scale sequencing data.
 #' \emph{NAR Genomics and Bioinformatics} 6:lqae145.
 #' \doi{10.1093/nargab/lqae145}

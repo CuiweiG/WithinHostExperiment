@@ -35,7 +35,7 @@ BiocManager::install("CuiweiG/WithinHostExperiment")
 # Introduction
 
 `WithinHostExperiment` is a Bioconductor infrastructure package for
-analyzing intra-host single nucleotide variants (iSNV) from pathogen
+analysing intra-host single nucleotide variants (iSNV) from pathogen
 deep sequencing data.
 
 ## The problem
@@ -44,7 +44,7 @@ Researchers performing within-host pathogen diversity analysis face a
 fragmented tooling landscape. Variant callers such as iVar, LoFreq,
 and Freebayes produce outputs in different formats. Quality control
 relies on ad hoc scripts. There is no standard Bioconductor container
-that organizes within-host variant data with replicate information,
+that organises within-host variant data with replicate information,
 donor-recipient pairing, and QC provenance.
 
 ## What this package provides
@@ -55,7 +55,7 @@ variant callers and downstream analysis tools:
 - A `RangedSummarizedExperiment`-based container
 - Replicate-aware, uncertainty-preserving QC (flag, don't delete)
 - Within-host diversity quantification
-- Standardized export compatible with downstream bottleneck estimation tools
+- Standardised export compatible with downstream bottleneck estimation tools
 
 ## Relationship to existing tools
 
@@ -79,7 +79,7 @@ reasons:
    `GRanges`, and the `VariantAnnotation` ecosystem.
 3. **Complementary to existing packages.** It provides an
    interoperability layer between upstream variant callers and
-   downstream bottleneck estimation workflows through a standardized
+   downstream bottleneck estimation workflows through a standardised
    QC container.
 4. **Reproducibility.** The flag-don't-delete QC philosophy and
    full audit logging align with Bioconductor's emphasis on
@@ -174,10 +174,10 @@ transmissionPairs(whe)
 # Quality control
 
 Accurate iSNV identification requires careful quality control.
-Cavallo et al. (2023, *mSphere*) demonstrated that choice of
+Roder et al. (2023, *mBio*) demonstrated that choice of
 variant caller and use of replicate sequencing have the most
 significant impact on iSNV discovery. `WithinHostExperiment`
-addresses both: it harmonizes output from multiple callers
+addresses both: it harmonises output from multiple callers
 (iVar, LoFreq, Freebayes) and provides replicate-aware QC as a
 first-class feature.
 
@@ -309,7 +309,7 @@ vr
 ## Export for downstream bottleneck tools
 
 For comprehensive transmission bottleneck analysis using multiple
-methods, export the standardized input frame compatible with
+methods, export the standardised input frame compatible with
 `ViralBottleneck` and similar tools:
 
 ```{r vb-export}
@@ -318,7 +318,7 @@ head(vb_input)
 # Compatible with: ViralBottleneck::bottleneck_size(vb_input, ...)
 ```
 
-# Visualization
+# Visualisation
 
 ```{r viz-spectrum, fig.width=6, fig.height=4}
 plotFrequencySpectrum(whe_qc)
@@ -371,8 +371,8 @@ reported for respiratory viruses.
 # Case study: SARS-CoV-2 transmission pair
 
 This section demonstrates the complete workflow on real SARS-CoV-2
-iSNV data from McCrone et al. (2023) *Nature Communications* 14:235.
-We analyze household HH6 -- an epidemiologically confirmed
+iSNV data from Bendall et al. (2023) *Nature Communications* 14:272.
+We analyse household HH6 -- an epidemiologically confirmed
 donor-recipient pair.
 
 ```{r case-study-import}
@@ -640,8 +640,8 @@ detectEmergingVariants(whe_l)
 
 ## SCI strand bias filtering
 
-The SCI metric (Farkas et al. 2024) normalises strand bias by the
-global strand coverage ratio, suitable for amplicon data:
+The SCI score normalises strand bias by the global strand coverage
+ratio, which suits amplicon data with unequal strand coverage:
 
 ```{r sci-strand}
 sci <- sciStrandBias(
@@ -662,7 +662,7 @@ adaptiveFilter("ont")
 adaptiveFilter("pacbio_hifi")
 ```
 
-## Diversity modeling and statistical utilities
+## Diversity modelling and statistical utilities
 
 Fit linear models to diversity data and correct for multiple
 testing:
@@ -699,7 +699,7 @@ variants (iSNVs). It does **not** perform:
 - **Haplotype phasing or quasispecies reconstruction**, which require
   read-level (BAM) analysis outside the scope of
   `RangedSummarizedExperiment`. For haplotype-aware analysis, consider
-  CliqueSNV (Knyazev et al. 2020 *Genome Res* 30:376), ShoRAH
+  CliqueSNV (Knyazev et al. 2021 *Nucleic Acids Res* 49:e102), ShoRAH
   (Zagordi et al. 2011 *BMC Bioinformatics* 12:119), or similar
   tools. Their output can be imported into `WithinHostExperiment`
   for downstream diversity and QC analysis.

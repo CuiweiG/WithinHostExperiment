@@ -118,11 +118,10 @@ setMethod("flagISNV", "WithinHostExperiment",
     ## ---- Step 5: Strand bias filter (only if strand assays exist) ----
     ## Uses fold-difference max(fwd/rev, rev/fwd) as a simple strand
     ## bias metric. For amplicon data with inherent strand coverage
-    ## imbalance, consider the coverage-aware S score described in
-    ## Farkas et al. (2024) NAR Genomics & Bioinformatics 6:lqae145,
-    ## which accounts for global strand coverage ratios. To use
-    ## that approach, provide fwdTotalCount/revTotalCount assays
-    ## and compute the score externally.
+    ## imbalance, flagStrandBiasSCI() normalises by the global strand
+    ## coverage ratio instead; it needs fwdTotalCount/revTotalCount
+    ## assays. Mostefai et al. (2024) NAR Genomics & Bioinformatics
+    ## 6:lqae145 use a per-strand binomial likelihood.
     if (all(c("fwdAltCount", "revAltCount") %in% assayNames(whe))) {
         fwd <- assay(whe, "fwdAltCount")
         rev_counts <- assay(whe, "revAltCount")

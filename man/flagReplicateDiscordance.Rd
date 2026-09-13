@@ -31,7 +31,7 @@ between replicates and flags sites where the difference exceeds
 \code{freqTolerance}. Sites are flagged in ALL samples of the
 replicate group.
 
-Cavallo et al. (2023) demonstrated that replicate sequencing has
+Roder et al. (2023) demonstrated that replicate sequencing has
 the most significant impact on iSNV discovery accuracy. An
 alternative approach is replicate intersection (requiring
 detection in both replicates); use \code{requireBothDetected =
@@ -52,10 +52,10 @@ whe <- flagReplicateDiscordance(whe, freqTolerance = 0.05)
 qcLog(whe)
 }
 \references{
-Cavallo I et al. (2023). Optimized quantification of intra-host
+Roder AE et al. (2023). Optimized quantification of intra-host
 viral diversity in SARS-CoV-2 and influenza virus sequence data.
-\emph{mSphere} 8:e00173-23.
-\doi{10.1128/msphere.00173-23}
+\emph{mBio} 14:e01046-23.
+\doi{10.1128/mbio.01046-23}
 }
 \seealso{
 \code{\link{flagISNV}} for standard QC filtering.

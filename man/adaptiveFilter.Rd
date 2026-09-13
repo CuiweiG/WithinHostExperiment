@@ -28,7 +28,7 @@ default thresholds:
     but systematic context-dependent errors. A 3\% frequency
     threshold safely exceeds the noise floor while retaining true
     low-frequency variants. Depth of 100x is a widely adopted
-    minimum for reliable iSNV calling (McCrone & Lauring 2018;
+    minimum for reliable iSNV calling (McCrone & Lauring 2016;
     Grubaugh et al. 2019).
   }
   \item{\strong{Oxford Nanopore (ONT)} (\code{minFreq = 0.10,
@@ -36,7 +36,7 @@ default thresholds:
     ONT reads have higher per-base error rates (~1--5\% with R10
     chemistry), requiring a more conservative frequency threshold
     of 10\% to avoid false positives (Bull et al. 2020; Sanderson
-    et al. 2023). Lower depth thresholds reflect typical amplicon
+    & Barrett 2021). Lower depth thresholds reflect typical amplicon
     yields. Strand bias filtering is disabled (\code{Inf}) because
     ONT library preparation does not preserve strand information
     in a way that is informative for variant validation.
@@ -46,7 +46,7 @@ default thresholds:
     circular consensus sequencing, allowing a frequency threshold
     below ONT but above Illumina. Depth of 50x reflects the lower
     throughput but high per-read accuracy (Wenger et al. 2019;
-    Deng et al. 2023).
+    Deng et al. 2020).
   }
   \item{\strong{Generic}}{
     Falls back to the standard \code{\link{ISNVFilter}} defaults
@@ -70,10 +70,10 @@ adaptiveFilter("pacbio_hifi")
 adaptiveFilter("generic")
 }
 \references{
-McCrone JT, Lauring AS (2018). Measurements of intrahost viral
+McCrone JT, Lauring AS (2016). Measurements of intrahost viral
 diversity are extremely sensitive to systematic errors in variant
-calling. \emph{J Virol} 92:e00014-18.
-\doi{10.1128/JVI.00014-18}
+calling. \emph{J Virol} 90:6884-6895.
+\doi{10.1128/JVI.00667-16}
 
 Grubaugh ND et al. (2019). An amplicon-based sequencing framework
 for accurately measuring intrahost virus diversity using PrimalSeq
@@ -84,17 +84,17 @@ Bull RA et al. (2020). Analytical validity of nanopore sequencing
 for rapid SARS-CoV-2 genome analysis. \emph{Nature Communications}
 11:6272. \doi{10.1038/s41467-020-20075-6}
 
-Sanderson T et al. (2023). Variation at Spike position 142 in
-SARS-CoV-2 Delta genomes is a technical artifact caused by
+Sanderson T, Barrett JC (2021). Variation at Spike position 142
+in SARS-CoV-2 Delta genomes is a technical artifact caused by
 dropout of a sequencing amplicon. \emph{Wellcome Open Research}
-6:305. \doi{10.12688/wellcomeopenres.17295.2}
+6:305. \doi{10.12688/wellcomeopenres.17295.1}
 
 Wenger AM et al. (2019). Accurate circular consensus long-read
 sequencing improves variant detection and assembly of a human
 genome. \emph{Nature Biotechnology} 37:1155--1162.
 \doi{10.1038/s41587-019-0217-9}
 
-Deng L et al. (2023). Metagenomic sequencing with spiked primer
+Deng X et al. (2020). Metagenomic sequencing with spiked primer
 enrichment for viral diagnostics and genomic surveillance.
 \emph{Nature Microbiology} 5:443--454.
 \doi{10.1038/s41564-019-0637-9}

@@ -9,7 +9,7 @@ calcSharedVariants(whe, pairId)
 \arguments{
 \item{whe}{A \code{\link{WithinHostExperiment}}.}
 
-\item{pairId}{Character. Which pair to analyze.}
+\item{pairId}{Character. Which pair to analyse.}
 }
 \value{
 A named list: n_donor_only, n_recipient_only, n_shared,

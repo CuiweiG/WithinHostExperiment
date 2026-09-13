@@ -29,7 +29,7 @@
   `neutralityFromSFS()` computes Tajima's D, Fu's Fs, and
   **Fay and Wu's H** (new) from a single SFS object;
   `compareSFS()` tests SFS homogeneity between samples;
-  `plotSFS()` provides publication-quality SFS visualization.
+  `plotSFS()` provides publication-quality SFS visualisation.
   This is the first Bioconductor implementation of a structured
   within-host SFS with integrated bias correction.
 * **Temporal QC for longitudinal data**:
@@ -74,25 +74,25 @@
   the exact beta-binomial, Wright-Fisher, and presence-absence
   methods (Sobel Leonard et al. 2017).
 * Strand bias detection: `sciStrandBias()` and
-  `flagStrandBiasSCI()` for SCI-aware artifact filtering
-  (Farkas et al. 2024).
+  `flagStrandBiasSCI()` for strand bias filtering that accounts
+  for unequal strand coverage.
 * Adaptive filtering: `adaptiveFilter()` for technology-specific
   QC presets (Illumina, ONT, PacBio HiFi).
-* Diversity modeling: `fitDiversityModel()` for regression
-  modeling of diversity measures, `multitestCorrection()` for
+* Diversity modelling: `fitDiversityModel()` for regression
+  modelling of diversity measures, `multitestCorrection()` for
   multiple testing correction, `permutationTest()` for
   non-parametric hypothesis testing.
 * Validation: `validateDiversity()` for cross-checking diversity
   estimates against literature-reported ranges.
 * ViralBottleneck bridge: `asViralBottleneckInput()` exports
-  standardized data for the ViralBottleneck package (Archaman
+  standardised data for the ViralBottleneck package (Zheng
   et al. 2025).
 * Interoperability: `as(whe, "VRanges")`,
   `as(vr, "WithinHostExperiment")`, and
   `as(whe, "data.frame")` for seamless integration.
 * Batch operations: `combineRows()` and `combineCols()` for
   merging experiments.
-* Publication-quality visualization: `plotFrequencySpectrum()`,
+* Publication-quality visualisation: `plotFrequencySpectrum()`,
   `plotPairScatter()`, `plotQCDashboard()`, and
   `plotFrequencyTrajectory()` with colorblind-safe palette
   (Wong 2011).

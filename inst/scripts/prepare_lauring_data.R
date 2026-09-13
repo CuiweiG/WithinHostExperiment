@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 ## Prepare real SARS-CoV-2 iSNV data from Lauring Lab
 ## Source: github.com/lauringlab/SARS-CoV-2_VOC_transmission_bottleneck
-## Paper: McCrone et al. 2023 Nature Communications
+## Paper: Bendall et al. 2023 Nature Communications 14:272
 ##
 ## This script converts the merged replicate format into
 ## per-sample iVar-style TSV files for WithinHostExperiment.

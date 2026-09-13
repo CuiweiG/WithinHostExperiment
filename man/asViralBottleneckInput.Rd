@@ -35,7 +35,7 @@ expected by the \pkg{ViralBottleneck} package.
 For comprehensive bottleneck analysis with multiple methods
 (presence-absence, KL divergence, binomial, beta-binomial
 approximate/exact, and Wright-Fisher), use the
-\pkg{ViralBottleneck} package (Archaman et al. 2025,
+\pkg{ViralBottleneck} package (Zheng et al. 2025,
 \emph{Virus Evolution} 11:veaf071). This function prepares
 a simplified input suitable for the beta-binomial methods.
 }

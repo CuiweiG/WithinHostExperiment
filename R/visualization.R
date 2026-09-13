@@ -1,5 +1,5 @@
 # R/visualization.R
-# Publication-quality visualization (Nature/Science style)
+# Publication-quality visualisation (Nature/Science style)
 
 #' @include methods.R
 #' @include bridge.R
@@ -164,7 +164,7 @@ plotFrequencySpectrum <- function(whe,
                                    seq_len(n_samples)],
                     name = NULL)
         } else if (n_samples > 7) {
-            ## Too many samples for individual colors
+            ## Too many samples for individual colours
             p <- p +
                 ggplot2::geom_histogram(
                     bins = 25, fill = .whe_pal$blue,
@@ -256,7 +256,7 @@ plotFrequencySpectrum <- function(whe,
 #'
 #' Creates a publication-quality scatter plot comparing variant
 #' frequencies between a donor and recipient, highlighting shared
-#' and unique variants with distinct shapes and colors.
+#' and unique variants with distinct shapes and colours.
 #'
 #' @param whe A \code{\link{WithinHostExperiment}} with
 #'   transmission pairs.
@@ -542,7 +542,7 @@ plotQCDashboard <- function(whe) {
                                     fromLast = TRUE), ]
         steps$step <- factor(steps$step, levels = steps$step)
 
-        ## Color: input=skyblue, filters=orange, passed=green
+        ## Colour: input=skyblue, filters=orange, passed=green
         bar_fills <- c(
             .whe_pal$skyblue,
             rep(.whe_pal$orange, nrow(steps) - 2),

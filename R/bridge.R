@@ -120,7 +120,7 @@ exportPairFrequencies <- function(whe, pairId = NULL,
 #' For comprehensive bottleneck analysis with multiple methods
 #' (presence-absence, KL divergence, binomial, beta-binomial
 #' approximate/exact, and Wright-Fisher), use the
-#' \pkg{ViralBottleneck} package (Archaman et al. 2025,
+#' \pkg{ViralBottleneck} package (Zheng et al. 2025,
 #' \emph{Virus Evolution} 11:veaf071). This function prepares
 #' a simplified input suitable for the beta-binomial methods.
 #'
@@ -161,7 +161,7 @@ asViralBottleneckInput <- function(whe, pairId = NULL, threshold = 0.03,
 #' Calculate shared variant statistics
 #'
 #' @param whe A \code{\link{WithinHostExperiment}}.
-#' @param pairId Character. Which pair to analyze.
+#' @param pairId Character. Which pair to analyse.
 #'
 #' @return A named list: n_donor_only, n_recipient_only, n_shared,
 #'   n_total, sharing_rate.

@@ -3,8 +3,8 @@
 \docType{class}
 \name{WithinHostSFS-class}
 \alias{WithinHostSFS-class}
-\alias{WithinHostSFS}
 \alias{.WithinHostSFS}
+\alias{WithinHostSFS}
 \alias{show,WithinHostSFS-method}
 \title{WithinHostSFS: Site Frequency Spectrum for within-host variants}
 \usage{
@@ -15,8 +15,8 @@
 }
 \value{
 An object of class \code{WithinHostSFS}, normally created by
-\code{\link{buildSFS}}; the \code{show} method prints a summary of the
-spectrum and returns \code{NULL} invisibly.
+  \code{\link{buildSFS}}; the \code{show} method prints a summary of the
+  spectrum and returns \code{NULL} invisibly.
 }
 \description{
 An S4 class representing the site frequency spectrum (SFS) of

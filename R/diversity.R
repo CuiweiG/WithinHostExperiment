@@ -18,7 +18,7 @@ NULL
 #' \deqn{H = -\sum_i [p_i \log(p_i) + (1-p_i) \log(1-p_i)]}
 #' where \eqn{p_i} is the alternative allele frequency at site
 #' \eqn{i}. This formulation treats each iSNV as an independent
-#' biallelic locus, following McCrone & Lauring (2018) and Popa
+#' biallelic locus, following McCrone & Lauring (2016) and Popa
 #' et al. (2020). Higher values indicate greater within-host
 #' diversity.
 #'

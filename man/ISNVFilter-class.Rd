@@ -14,8 +14,8 @@
 }
 \value{
 An object of class \code{ISNVFilter}. Objects are created with
-the constructor \code{\link{ISNVFilter}}; the \code{show} method prints
-the filter thresholds and returns \code{NULL} invisibly.
+  the constructor \code{\link{ISNVFilter}}; the \code{show} method prints
+  the filter thresholds and returns \code{NULL} invisibly.
 }
 \description{
 An S4 class holding parameters for filtering intra-host single
@@ -29,7 +29,7 @@ within-host pathogen diversity literature:
     variant detection. Many studies require >= 100x (Grubaugh
     et al. 2019 Genome Biology).}
   \item{\code{minFreq = 0.03}}{3\% minor allele frequency
-    threshold. McCrone & Lauring (2018) J Virol used 2-3\%;
+    threshold. McCrone & Lauring (2016) J Virol used 2-3\%;
     Popa et al. (2020) Science Translational Medicine used 3\%.}
   \item{\code{maxFreq = 0.50}}{Variants above 50\% are considered
     consensus-level changes, not intra-host variants.}
@@ -76,22 +76,22 @@ ISNVFilter()
 ISNVFilter(minDepth = 500L, minFreq = 0.05)
 }
 \references{
-Cavallo I et al. (2023). Optimized quantification of intra-host
+Roder AE et al. (2023). Optimized quantification of intra-host
 viral diversity in SARS-CoV-2 and influenza virus sequence data.
-\emph{mSphere} 8:e00173-23.
-\doi{10.1128/msphere.00173-23}
+\emph{mBio} 14:e01046-23.
+\doi{10.1128/mbio.01046-23}
 
-McCrone JT, Lauring AS (2018). Measurements of intrahost viral
+McCrone JT, Lauring AS (2016). Measurements of intrahost viral
 diversity are extremely sensitive to systematic errors in variant
-calling. \emph{J Virol} 92:e00014-18.
-\doi{10.1128/JVI.00014-18}
+calling. \emph{J Virol} 90:6884-6895.
+\doi{10.1128/JVI.00667-16}
 
 Grubaugh ND et al. (2019). An amplicon-based sequencing framework
 for accurately measuring intrahost virus diversity using PrimalSeq
 and iVar. \emph{Genome Biology} 20:8.
 \doi{10.1186/s13059-018-1618-7}
 
-Farkas C et al. (2024). Refining SARS-CoV-2 intra-host
+Mostefai F et al. (2024). Refining SARS-CoV-2 intra-host
 variation by leveraging large-scale sequencing data.
 \emph{NAR Genomics and Bioinformatics} 6:lqae145.
 \doi{10.1093/nargab/lqae145}

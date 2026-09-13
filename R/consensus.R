@@ -25,7 +25,7 @@ NULL
 #'
 #' When technical replicates are unavailable, using a multi-caller
 #' consensus is recommended for reducing false positive iSNV calls
-#' (Cavallo et al. 2023).
+#' (Roder et al. 2023).
 #'
 #' @param whe_list A named list of \code{\link{WithinHostExperiment}}
 #'   objects, one per variant caller (e.g.,
@@ -47,10 +47,10 @@ NULL
 #'   callers for each consensus site.
 #'
 #' @references
-#' Cavallo I et al. (2023). Optimized quantification of intra-host
+#' Roder AE et al. (2023). Optimized quantification of intra-host
 #' viral diversity in SARS-CoV-2 and influenza virus sequence data.
-#' \emph{mSphere} 8:e00173-23.
-#' \doi{10.1128/msphere.00173-23}
+#' \emph{mBio} 14:e01046-23.
+#' \doi{10.1128/mbio.01046-23}
 #'
 #' @export
 #' @examples
@@ -239,10 +239,10 @@ consensusISNV <- function(whe_list, min_callers = 2L,
 #'   }
 #'
 #' @references
-#' Cavallo I et al. (2023). Optimized quantification of intra-host
+#' Roder AE et al. (2023). Optimized quantification of intra-host
 #' viral diversity in SARS-CoV-2 and influenza virus sequence data.
-#' \emph{mSphere} 8:e00173-23.
-#' \doi{10.1128/msphere.00173-23}
+#' \emph{mBio} 14:e01046-23.
+#' \doi{10.1128/mbio.01046-23}
 #'
 #' @export
 #' @examples

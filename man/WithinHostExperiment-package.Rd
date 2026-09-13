@@ -7,7 +7,7 @@
 and Bottleneck}
 \description{
 Provides a \code{\link[SummarizedExperiment]{RangedSummarizedExperiment-class}}-based
-container and workflow functions for analyzing intra-host single
+container and workflow functions for analysing intra-host single
 nucleotide variants (iSNV) from pathogen deep sequencing data.
 }
 \details{
@@ -16,7 +16,7 @@ callers (iVar, LoFreq, Freebayes) and downstream transmission
 bottleneck workflows. Its core contribution is replicate-aware,
 uncertainty-preserving quality control -- variants are flagged
 rather than deleted, preserving full provenance for reproducible
-analysis. Standardized export functions provide interoperability
+analysis. Standardised export functions provide interoperability
 with tools such as ViralBottleneck.
 }
 \section{Key function groups}{
@@ -95,7 +95,7 @@ with tools such as ViralBottleneck.
   \item{Adaptive filtering}{
     \code{\link{adaptiveFilter}}
   }
-  \item{Diversity modeling}{
+  \item{Diversity modelling}{
     \code{\link{fitDiversityModel}},
     \code{\link{validateDiversity}}
   }
@@ -109,7 +109,7 @@ with tools such as ViralBottleneck.
     \code{\link{compareSFS}} (chi-squared SFS comparison),
     \code{\link{plotSFS}} (publication-quality SFS plot)
   }
-  \item{Visualization}{
+  \item{Visualisation}{
     \code{\link{plotFrequencySpectrum}},
     \code{\link{plotPairScatter}},
     \code{\link{plotQCDashboard}}
@@ -127,7 +127,7 @@ with tools such as ViralBottleneck.
     read-level (BAM) analysis that is outside the scope of
     \code{RangedSummarizedExperiment}-based containers. For
     haplotype-aware within-host analysis, consider
-    CliqueSNV (Knyazev et al. 2020 \emph{Genome Res} 30:376),
+    CliqueSNV (Knyazev et al. 2021 \emph{Nucleic Acids Res} 49:e102),
     ShoRAH (Zagordi et al. 2011 \emph{BMC Bioinformatics}
     12:119), or similar tools. Their output can be imported
     into \code{WithinHostExperiment} for downstream diversity
@@ -158,7 +158,7 @@ with tools such as ViralBottleneck.
   \item \strong{Replicate-aware.} Technical replicate concordance
     is a first-class QC criterion, not a post-hoc check.
   \item \strong{Interoperable, don't reinvent.} The package
-    provides standardized export functions compatible with existing
+    provides standardised export functions compatible with existing
     downstream tools rather than reimplementing their methods.
   \item \strong{Bioconductor-native.} Built on
     \code{RangedSummarizedExperiment}, interoperable via
@@ -172,14 +172,14 @@ ls("package:WithinHostExperiment")
 
 }
 \references{
-Cavallo I et al. (2023). Optimized quantification of intra-host
+Roder AE et al. (2023). Optimized quantification of intra-host
 viral diversity in SARS-CoV-2 and influenza virus sequence data.
-\emph{mSphere} 8:e00173-23.
-\doi{10.1128/msphere.00173-23}
+\emph{mBio} 14:e01046-23.
+\doi{10.1128/mbio.01046-23}
 
-McCrone JT et al. (2023). Rapid transmission and tight bottlenecks
+Bendall EE et al. (2023). Rapid transmission and tight bottlenecks
 constrain the evolution of highly transmissible SARS-CoV-2
-variants. \emph{Nat. Commun.} 14:235.
+variants. \emph{Nat. Commun.} 14:272.
 \doi{10.1038/s41467-023-36001-5}
 
 Sobel Leonard A et al. (2017). Transmission Bottleneck Size
@@ -187,12 +187,12 @@ Estimation from Pathogen Deep-Sequencing Data.
 \emph{J Virol} 91:e00171-17.
 \doi{10.1128/JVI.00171-17}
 
-Farkas C et al. (2024). Refining SARS-CoV-2 intra-host
+Mostefai F et al. (2024). Refining SARS-CoV-2 intra-host
 variation by leveraging large-scale sequencing data.
 \emph{NAR Genomics and Bioinformatics} 6:lqae145.
 \doi{10.1093/nargab/lqae145}
 
-Archaman B et al. (2025). ViralBottleneck: an R package for
+Zheng B, Johnson PCD, Hughes J (2025). ViralBottleneck: an R package for
 estimating viral transmission bottlenecks from deep sequencing
 data using multiple methods.
 \emph{Virus Evolution} 11:veaf071.
