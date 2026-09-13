@@ -188,9 +188,9 @@ dndsWithinHost <- function(whe,
 #'   \code{length(freqs) - 1}.
 #'
 #' @references
-#' Feder AF et al. (2014). More effective drugs lead to harder
+#' Feder AF et al. (2016). More effective drugs lead to harder
 #' selective sweeps in the evolution of drug resistance in HIV-1.
-#' \emph{eLife} 3:e04492. \doi{10.7554/eLife.04492}
+#' \emph{eLife} 5:e10670. \doi{10.7554/eLife.10670}
 #'
 #' @export
 #' @examples

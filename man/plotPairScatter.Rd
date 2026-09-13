@@ -21,7 +21,7 @@ A ggplot object.
 \description{
 Creates a publication-quality scatter plot comparing variant
 frequencies between a donor and recipient, highlighting shared
-and unique variants with distinct shapes and colors.
+and unique variants with distinct shapes and colours.
 }
 \examples{
 if (requireNamespace("ggplot2", quietly = TRUE)) {

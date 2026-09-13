@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 ## generate_readme_figures.R -?all real data, all package functions
-## McCrone et al. 2023 + Farjo et al. 2022 + NCBI GFF3
+## Bendall et al. 2023 + Farjo et al. 2024 + NCBI GFF3
 library(ggplot2)
 library(patchwork)
 devtools::load_all(".", quiet = TRUE)
@@ -32,7 +32,7 @@ theme_pub <- function(bs = 10) {
       plot.tag=element_text(size=bs+3,face="bold",color="black"))
 }
 
-## ---- McCrone data ----
+## ---- Bendall data ----
 DATA <- "inst/scripts/real_data"
 vars <- read.delim(file.path(DATA,"all_variants_filtered.tsv"),stringsAsFactors=FALSE)
 cov_l <- readLines(file.path(DATA,"AvgCoverage.all"))[-1]
@@ -58,7 +58,7 @@ df_div <- do.call(rbind,lapply(all_s,function(s){
     n_n=length(fa),n_q=length(fp),stringsAsFactors=FALSE)}))
 wt <- wilcox.test(df_div$pi_n,df_div$pi_q,paired=TRUE,alternative="greater",exact=FALSE)
 mn <- median(df_div$pi_n); mq <- median(df_div$pi_q)
-cat(sprintf("McCrone: %d iSNVs, %d samples, R2=%.3f\n",n_isnv,n_samp,r2))
+cat(sprintf("Bendall: %d iSNVs, %d samples, R2=%.3f\n",n_isnv,n_samp,r2))
 
 ## ================================================================
 ## FIG 1 -?Replicate QC (unchanged)
@@ -407,4 +407,4 @@ ggsave("man/figures/fig6_consensus_validation.png",fig6,width=7.0,height=3.2,dpi
 
 cat("\n=== ALL 6 FIGURES SAVED ===\n")
 cat(sprintf("R: %s\n",R.version.string))
-cat("McCrone 2023 + Farjo 2022 + NCBI GFF3. All real data.\n")
+cat("Bendall 2023 + Farjo 2024 + NCBI GFF3. All real data.\n")

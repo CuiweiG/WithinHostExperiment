@@ -40,7 +40,7 @@ greater than \code{freq_tolerance} are retained.
 \details{
 When technical replicates are unavailable, using a multi-caller
 consensus is recommended for reducing false positive iSNV calls
-(Cavallo et al. 2023).
+(Roder et al. 2023).
 }
 \examples{
 gr <- GenomicRanges::GRanges("seg1",
@@ -61,8 +61,8 @@ consensus <- consensusISNV(list(caller1 = whe1, caller2 = whe2))
 consensus
 }
 \references{
-Cavallo I et al. (2023). Optimized quantification of intra-host
+Roder AE et al. (2023). Optimized quantification of intra-host
 viral diversity in SARS-CoV-2 and influenza virus sequence data.
-\emph{mSphere} 8:e00173-23.
-\doi{10.1128/msphere.00173-23}
+\emph{mBio} 14:e01046-23.
+\doi{10.1128/mbio.01046-23}
 }

@@ -516,7 +516,7 @@ compareSFS <- function(sfs1, sfs2) {
 
 
 # ============================================================
-# plotSFS -- publication-quality SFS visualization
+# plotSFS -- publication-quality SFS visualisation
 # ============================================================
 
 #' Plot a within-host site frequency spectrum

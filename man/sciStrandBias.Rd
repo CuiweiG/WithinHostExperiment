@@ -23,10 +23,12 @@ A numeric vector of SCI scores (log2 scale). Values
   indicate strand-specific enrichment or depletion.
 }
 \description{
-Computes the SCI strand bias metric described in Farkas et al.
-(2024). The score normalises the per-site forward/reverse ratio
-by the global strand coverage ratio, making it suitable for
-amplicon data where strand coverage is inherently unequal.
+Computes a strand bias score that normalises the per-site
+forward/reverse alternative-allele ratio by the global strand
+coverage ratio, making it suitable for amplicon data where strand
+coverage is inherently unequal. Mostefai et al. (2024) showed that
+strand bias filters which ignore this imbalance can discard genuine
+variants; their own metric is a per-strand binomial likelihood.
 }
 \details{
 The SCI is defined as:
@@ -50,8 +52,8 @@ sci <- sciStrandBias(
 sci
 }
 \references{
-Farkas C et al. (2024). Strand coverage bias analysis for
-calling intrahost single nucleotide variants in amplicon-based
-sequencing data. \emph{NAR Genomics and Bioinformatics}
-6:lqae145. \doi{10.1093/nargab/lqae145}
+Mostefai F et al. (2024). Refining SARS-CoV-2 intra-host
+variation by leveraging large-scale sequencing data.
+\emph{NAR Genomics and Bioinformatics} 6:lqae145.
+\doi{10.1093/nargab/lqae145}
 }

@@ -39,8 +39,7 @@ estimateSelectionCoefficient(freqs)
 estimateSelectionCoefficient(freqs, times = c(0, 3, 7, 14))
 }
 \references{
-Nei M, Gojobori T (1986). Simple methods for estimating the
-numbers of synonymous and nonsynonymous nucleotide substitutions.
-\emph{Mol Biol Evol} 3:418-426.
-\doi{10.1093/oxfordjournals.molbev.a040410}
+Feder AF et al. (2016). More effective drugs lead to harder
+selective sweeps in the evolution of drug resistance in HIV-1.
+\emph{eLife} 5:e10670. \doi{10.7554/eLife.10670}
 }

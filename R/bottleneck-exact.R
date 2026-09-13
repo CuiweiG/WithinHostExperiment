@@ -201,7 +201,7 @@ exactBottleneck <- function(whe, pairId, maxNb = 500L,
             }
         } else {
             ## Variant present: use density near the observed freq
-            ## Approximate with narrow beta centered at drift_freq
+            ## Approximate with narrow beta centred at drift_freq
             if (k == 0L) {
                 log_p_obs <- -Inf
             } else if (k == Nb) {

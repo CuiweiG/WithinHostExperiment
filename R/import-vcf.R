@@ -37,8 +37,8 @@ NULL
 #' @return A \code{\link{WithinHostExperiment}}.
 #'
 #' @details
-#' When technical replicates are not available, Cavallo et al. (2023,
-#' \emph{mSphere} 8:e00173-23) recommend using a combination of
+#' When technical replicates are not available, Roder et al. (2023,
+#' \emph{mBio} 14:e01046-23) recommend using a combination of
 #' multiple variant callers with stringent cutoffs to reduce false
 #' positives. To implement multi-caller consensus, import VCFs from
 #' each caller separately and intersect the resulting objects using

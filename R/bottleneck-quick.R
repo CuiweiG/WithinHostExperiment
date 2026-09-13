@@ -13,7 +13,7 @@ NULL
 #' beta-binomial method (which accounts for finite read depth)
 #' or other approaches (presence-absence, KL divergence,
 #' Wright-Fisher), use the \pkg{ViralBottleneck} package
-#' (Archaman et al. 2025, \emph{Virus Evolution} 11:veaf071)
+#' (Zheng et al. 2025, \emph{Virus Evolution} 11:veaf071)
 #' via \code{\link{asViralBottleneckInput}}.
 #'
 #' @param whe A \code{\link{WithinHostExperiment}} with transmission

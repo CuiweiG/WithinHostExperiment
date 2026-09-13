@@ -22,7 +22,7 @@
 #'     but systematic context-dependent errors. A 3\% frequency
 #'     threshold safely exceeds the noise floor while retaining true
 #'     low-frequency variants. Depth of 100x is a widely adopted
-#'     minimum for reliable iSNV calling (McCrone & Lauring 2018;
+#'     minimum for reliable iSNV calling (McCrone & Lauring 2016;
 #'     Grubaugh et al. 2019).
 #'   }
 #'   \item{\strong{Oxford Nanopore (ONT)} (\code{minFreq = 0.10,
@@ -30,7 +30,7 @@
 #'     ONT reads have higher per-base error rates (~1--5\% with R10
 #'     chemistry), requiring a more conservative frequency threshold
 #'     of 10\% to avoid false positives (Bull et al. 2020; Sanderson
-#'     et al. 2023). Lower depth thresholds reflect typical amplicon
+#'     & Barrett 2021). Lower depth thresholds reflect typical amplicon
 #'     yields. Strand bias filtering is disabled (\code{Inf}) because
 #'     ONT library preparation does not preserve strand information
 #'     in a way that is informative for variant validation.
@@ -50,10 +50,10 @@
 #' }
 #'
 #' @references
-#' McCrone JT, Lauring AS (2018). Measurements of intrahost viral
+#' McCrone JT, Lauring AS (2016). Measurements of intrahost viral
 #' diversity are extremely sensitive to systematic errors in variant
-#' calling. \emph{J Virol} 92:e00014-18.
-#' \doi{10.1128/JVI.00014-18}
+#' calling. \emph{J Virol} 90:6884-6895.
+#' \doi{10.1128/JVI.00667-16}
 #'
 #' Grubaugh ND et al. (2019). An amplicon-based sequencing framework
 #' for accurately measuring intrahost virus diversity using PrimalSeq
@@ -67,7 +67,7 @@
 #' Sanderson T, Barrett JC (2021). Variation at Spike position 142
 #' in SARS-CoV-2 Delta genomes is a technical artifact caused by
 #' dropout of a sequencing amplicon. \emph{Wellcome Open Research}
-#' 6:305. \doi{10.12688/wellcomeopenres.17295.2}
+#' 6:305. \doi{10.12688/wellcomeopenres.17295.1}
 #'
 #' Wenger AM et al. (2019). Accurate circular consensus long-read
 #' sequencing improves variant detection and assembly of a human

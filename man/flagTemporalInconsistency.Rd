@@ -82,7 +82,8 @@ whe <- flagTemporalInconsistency(whe, minTimepoints = 2L)
 S4Vectors::mcols(SummarizedExperiment::rowRanges(whe))$temporal_class
 }
 \references{
-Farjo M et al. (2022). Within-host evolutionary dynamics and
+Farjo M et al. (2024). Within-host evolutionary dynamics and
 tissue compartmentalization during acute SARS-CoV-2 infection.
-\emph{bioRxiv}. \doi{10.1101/2022.06.21.497047}
+\emph{J Virol} 98:e01618-23.
+\doi{10.1128/jvi.01618-23}
 }

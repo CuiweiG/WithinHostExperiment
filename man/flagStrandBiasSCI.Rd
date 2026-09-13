@@ -27,9 +27,9 @@ assay.
 }
 \details{
 Unlike the simple fold-difference strand bias in
-\code{\link{flagISNV}}, this function uses the SCI metric from
-Farkas et al. (2024) which normalises by the global strand
-coverage ratio. This is preferred for amplicon-based sequencing
+\code{\link{flagISNV}}, this function uses the SCI score, which
+normalises by the global strand coverage ratio (see
+\code{\link{sciStrandBias}}). This is preferred for amplicon-based sequencing
 where forward and reverse strand coverage is inherently
 unbalanced.
 }
@@ -53,10 +53,10 @@ whe <- flagStrandBiasSCI(whe, maxSCI = 1.5)
 qcLog(whe)
 }
 \references{
-Farkas C et al. (2024). Strand coverage bias analysis for
-calling intrahost single nucleotide variants in amplicon-based
-sequencing data. \emph{NAR Genomics and Bioinformatics}
-6:lqae145. \doi{10.1093/nargab/lqae145}
+Mostefai F et al. (2024). Refining SARS-CoV-2 intra-host
+variation by leveraging large-scale sequencing data.
+\emph{NAR Genomics and Bioinformatics} 6:lqae145.
+\doi{10.1093/nargab/lqae145}
 }
 \seealso{
 \code{\link{sciStrandBias}} for the underlying
