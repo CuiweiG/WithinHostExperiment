@@ -21,26 +21,28 @@
 #'     Illumina short reads have low per-base error rates (~0.1--0.5\%)
 #'     but systematic context-dependent errors. A 3\% frequency
 #'     threshold safely exceeds the noise floor while retaining true
-#'     low-frequency variants. Depth of 100x is a widely adopted
-#'     minimum for reliable iSNV calling (McCrone & Lauring 2016;
-#'     Grubaugh et al. 2019).
+#'     low-frequency variants. Grubaugh et al. (2019) measured iSNVs
+#'     above 3\% accurately from at least 1,000 RNA copies sequenced
+#'     to at least 400x, so 100x is a permissive floor; low-frequency
+#'     false positives inflate diversity estimates markedly (McCrone &
+#'     Lauring 2016).
 #'   }
 #'   \item{\strong{Oxford Nanopore (ONT)} (\code{minFreq = 0.10,
 #'     minDepth = 30, maxStrandBias = Inf})}{
 #'     ONT reads have higher per-base error rates (~1--5\% with R10
 #'     chemistry), requiring a more conservative frequency threshold
-#'     of 10\% to avoid false positives (Bull et al. 2020; Sanderson
-#'     & Barrett 2021). Lower depth thresholds reflect typical amplicon
+#'     of 10\% to avoid false positives; Bull et al. (2020) found that
+#'     ONT sequencing does not accurately detect variants at low
+#'     read-count frequencies. Lower depth thresholds reflect typical amplicon
 #'     yields. Strand bias filtering is disabled (\code{Inf}) because
 #'     ONT library preparation does not preserve strand information
 #'     in a way that is informative for variant validation.
 #'   }
 #'   \item{\strong{PacBio HiFi} (\code{minFreq = 0.05, minDepth = 50})}{
-#'     HiFi consensus reads achieve per-base accuracy >99.9\% via
-#'     circular consensus sequencing, allowing a frequency threshold
-#'     below ONT but above Illumina. Depth of 50x reflects the lower
-#'     throughput but high per-read accuracy (Wenger et al. 2019;
-#'     Deng et al. 2020).
+#'     HiFi consensus reads reach about 99.8\% read accuracy via
+#'     circular consensus sequencing (Wenger et al. 2019), allowing a
+#'     frequency threshold below ONT but above Illumina. Depth of 50x
+#'     reflects the lower throughput but high per-read accuracy.
 #'   }
 #'   \item{\strong{Generic}}{
 #'     Falls back to the standard \code{\link{ISNVFilter}} defaults
@@ -64,20 +66,10 @@
 #' for rapid SARS-CoV-2 genome analysis. \emph{Nature Communications}
 #' 11:6272. \doi{10.1038/s41467-020-20075-6}
 #'
-#' Sanderson T, Barrett JC (2021). Variation at Spike position 142
-#' in SARS-CoV-2 Delta genomes is a technical artifact caused by
-#' dropout of a sequencing amplicon. \emph{Wellcome Open Research}
-#' 6:305. \doi{10.12688/wellcomeopenres.17295.1}
-#'
 #' Wenger AM et al. (2019). Accurate circular consensus long-read
 #' sequencing improves variant detection and assembly of a human
 #' genome. \emph{Nature Biotechnology} 37:1155--1162.
 #' \doi{10.1038/s41587-019-0217-9}
-#'
-#' Deng X et al. (2020). Metagenomic sequencing with spiked primer
-#' enrichment for viral diagnostics and genomic surveillance.
-#' \emph{Nature Microbiology} 5:443--454.
-#' \doi{10.1038/s41564-019-0637-9}
 #'
 #' @seealso \code{\link{ISNVFilter}} for the underlying constructor,
 #'   \code{\link{flagISNV}} for applying filters.

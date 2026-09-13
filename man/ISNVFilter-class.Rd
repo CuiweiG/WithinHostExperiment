@@ -25,12 +25,14 @@ nucleotide variants. Used by \code{\link{flagISNV}}.
 Default values are based on commonly used thresholds in the
 within-host pathogen diversity literature:
 \describe{
-  \item{\code{minDepth = 100}}{Minimum coverage for reliable
-    variant detection. Many studies require >= 100x (Grubaugh
-    et al. 2019 Genome Biology).}
+  \item{\code{minDepth = 100}}{Minimum coverage for variant
+    detection. This is a permissive floor: Grubaugh et al. (2019,
+    Genome Biology) measured iSNVs above 3\% accurately from at
+    least 1,000 RNA copies sequenced to at least 400x.}
   \item{\code{minFreq = 0.03}}{3\% minor allele frequency
-    threshold. McCrone & Lauring (2016) J Virol used 2-3\%;
-    Popa et al. (2020) Science Translational Medicine used 3\%.}
+    threshold, the lower limit of accurate iSNV measurement in
+    Grubaugh et al. (2019); Popa et al. (2020, Science
+    Translational Medicine) used 2\%.}
   \item{\code{maxFreq = 0.50}}{Variants above 50\% are considered
     consensus-level changes, not intra-host variants.}
   \item{\code{minAltReads = 10}}{Minimum supporting reads to
