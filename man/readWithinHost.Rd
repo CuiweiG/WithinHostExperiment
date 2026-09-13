@@ -35,6 +35,12 @@ argument provides sample metadata and must contain a
 \code{sample_id} column whose length matches the number of files.
 
 
+Records with several alternative alleles are split into one site per
+allele. Per-allele values (INFO \code{AF}; FORMAT \code{AO},
+\code{AF}, \code{ALT_DP}, \code{ALT_FREQ} and \code{ALT_QUAL}) are
+taken for that allele, and per-site values such as total depth and
+reference counts are shared.
+
 When technical replicates are not available, Roder et al. (2023,
 \emph{mBio} 14:e01046-23) recommend using a combination of
 multiple variant callers with stringent cutoffs to reduce false

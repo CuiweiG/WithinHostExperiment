@@ -140,13 +140,14 @@ wattersonISNV <- function(nSites, genomeLength, meanDepth) {
 
 #' Simpson diversity index for iSNV frequencies
 #'
-#' Calculates Simpson diversity for biallelic iSNV sites:
-#' \deqn{D = 1 - \sum_i [p_i^2 + (1 - p_i)^2]}
+#' Calculates Simpson diversity summed over biallelic iSNV sites:
+#' \deqn{D = \sum_i \left[1 - p_i^2 - (1 - p_i)^2\right] =
+#'   \sum_i 2 p_i (1 - p_i)}
 #' where \eqn{p_i} is the alternative allele frequency at site
-#' \eqn{i}. Each site contributes two allele probabilities
-#' (\eqn{p} and \eqn{1-p}), and the index measures the
-#' probability that two randomly drawn alleles differ. Higher
-#' values indicate greater diversity.
+#' \eqn{i}. Each site contributes the probability that two alleles
+#' drawn at random at that site differ (at most 0.5), so the index is
+#' the expected number of differing sites. Higher values indicate
+#' greater diversity.
 #'
 #' @param freq Numeric vector. Alternative allele frequencies
 #'   (values in (0, 1); 0, 1, and NA are excluded).
@@ -161,7 +162,7 @@ simpsonISNV <- function(freq) {
     freq <- as.numeric(freq)
     freq <- freq[!is.na(freq) & freq > 0 & freq < 1]
     if (length(freq) == 0L) return(0)
-    1 - sum(freq^2 + (1 - freq)^2)
+    sum(1 - freq^2 - (1 - freq)^2)
 }
 
 #' Chao1 richness estimator for iSNV data

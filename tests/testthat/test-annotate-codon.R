@@ -61,3 +61,26 @@ test_that("codon table translates correctly", {
     expect_equal(WithinHostExperiment:::.translate_codon("GCT"), "A")
     expect_true(is.na(WithinHostExperiment:::.translate_codon("XY")))
 })
+
+test_that("annotateCodonChange honours the GFF3 phase", {
+    ## One leading base before the first complete codon (phase 1)
+    ref <- tempfile(fileext = ".fa")
+    writeLines(c(">seg1", "CATGCTGAAA"), ref)
+    gff <- tempfile(fileext = ".gff3")
+    writeLines(c("##gff-version 3",
+        "seg1\t.\tCDS\t1\t10\t.\t+\t1\tgene=geneA"), gff)
+    gr <- GenomicRanges::GRanges("seg1", IRanges::IRanges(c(2, 7, 1), width = 1))
+    S4Vectors::mcols(gr)$ref <- c("A", "G", "C")
+    S4Vectors::mcols(gr)$alt <- c("G", "A", "T")
+    whe <- WithinHostExperiment(
+        assays = list(altFreq = matrix(c(0.1, 0.2, 0.3), ncol = 1)),
+        rowRanges = gr,
+        colData = S4Vectors::DataFrame(sample_id = "S1"))
+    mc <- S4Vectors::mcols(SummarizedExperiment::rowRanges(
+        annotateCodonChange(whe, gff, ref)))
+    expect_equal(mc$REF_CODON[1], "ATG")
+    expect_equal(mc$ALT_CODON[1], "GTG")
+    expect_equal(mc$REF_CODON[2], "CTG")
+    expect_equal(mc$AA_CLASS[2], "Synonymous")
+    expect_true(is.na(mc$REF_CODON[3]))
+})

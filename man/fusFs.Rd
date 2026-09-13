@@ -16,7 +16,9 @@ minus 1).}
 nucleotide diversity (\eqn{\hat{\pi} \times L}).}
 }
 \value{
-Numeric scalar. Fu's Fs.
+Numeric scalar. Fu's Fs, or \code{NA} with a warning when
+  \eqn{S + 1 > n}: the statistic uses \eqn{S + 1} as the number of
+  haplotypes, which cannot exceed the number of sequences sampled.
 }
 \description{
 Computes Fu's Fs (Fu 1997), a test of neutrality based on the

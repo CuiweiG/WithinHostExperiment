@@ -107,3 +107,17 @@ test_that("VRanges -> WHE preserves depths", {
     expect_equal(unname(assay(whe, "altCount")[1, 1]), 250L)
     expect_equal(unname(assay(whe, "refCount")[1, 1]), 4750L)
 })
+
+test_that("combine methods dispatch through the S4Vectors generics", {
+    data(example_whe, package = "WithinHostExperiment")
+    whe1 <- flagISNV(example_whe[1:5, ], ISNVFilter())
+    whe2 <- flagISNV(example_whe[6:10, ], ISNVFilter(minDepth = 500L))
+    merged <- S4Vectors::combineRows(whe1, whe2)
+    expect_s4_class(merged, "WithinHostExperiment")
+    expect_equal(nrow(qcLog(merged)),
+                 nrow(qcLog(whe1)) + nrow(qcLog(whe2)))
+    merged_cols <- S4Vectors::combineCols(example_whe[, 1],
+                                          example_whe[, 2])
+    expect_s4_class(merged_cols, "WithinHostExperiment")
+    expect_equal(ncol(merged_cols), 2L)
+})

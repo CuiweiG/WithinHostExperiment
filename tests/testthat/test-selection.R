@@ -1,77 +1,101 @@
-## Helper: build a WHE with amino acid annotations
-.make_aa_whe <- function() {
-    gr <- GenomicRanges::GRanges("seg1",
-        IRanges::IRanges(c(100, 200, 300, 400, 500), width = 1))
-    S4Vectors::mcols(gr)$ref <- c("A", "C", "G", "T", "A")
-    S4Vectors::mcols(gr)$alt <- c("T", "G", "A", "C", "G")
-    S4Vectors::mcols(gr)$REF_AA <- c("M", "L", "A", "V", "D")
-    S4Vectors::mcols(gr)$ALT_AA <- c("I", "L", "V", "V", "E")
-    freq <- matrix(c(0.10, 0.20, 0.15, 0.30, 0.05), ncol = 1)
-    WithinHostExperiment(
-        assays = list(altFreq = freq),
-        rowRanges = gr,
-        colData = S4Vectors::DataFrame(sample_id = "S1"))
-}
-
-test_that("dndsWithinHost classifies syn/nonsyn correctly", {
-    whe <- .make_aa_whe()
-    result <- dndsWithinHost(whe)
-    expect_s4_class(result, "DataFrame")
-    ## Sites: M->I (nonsyn), L->L (syn), A->V (nonsyn),
-    ##        V->V (syn), D->E (nonsyn)
-    expect_equal(result$nS[1], 2L)
-    expect_equal(result$nN[1], 3L)
-})
-
-test_that("dndsWithinHost computes correct dN/dS ratio", {
-    whe <- .make_aa_whe()
-    result <- dndsWithinHost(whe)
-    expect_equal(result$dNdS[1], 3 / 2, tolerance = 1e-10)
-})
-
-test_that("dndsWithinHost returns NA when no synonymous sites", {
-    gr <- GenomicRanges::GRanges("seg1",
-        IRanges::IRanges(c(100, 200), width = 1))
-    S4Vectors::mcols(gr)$ref <- c("A", "C")
-    S4Vectors::mcols(gr)$alt <- c("T", "G")
-    S4Vectors::mcols(gr)$REF_AA <- c("M", "A")
-    S4Vectors::mcols(gr)$ALT_AA <- c("I", "V")
+## Helper: a 15-base CDS (ATG CTG AAA GGG TAA) with a GFF3 and FASTA.
+## Nei-Gojobori synonymous sites: ATG 0, CTG 4/3, AAA 1/3, GGG 1; the stop
+## codon is skipped, so S = 8/3 and N = 12 - 8/3 = 28/3.
+.ng_fixture <- function(positions, refs, alts, freqs = rep(0.2, length(positions))) {
+    ref <- tempfile(fileext = ".fa")
+    writeLines(c(">seg1", "ATGCTGAAAGGGTAA", ">seg2", "CCCCCCCCCC"), ref)
+    gff <- tempfile(fileext = ".gff3")
+    writeLines(c("##gff-version 3",
+        "seg1\t.\tCDS\t1\t15\t.\t+\t0\tgene=geneA"), gff)
+    gr <- GenomicRanges::GRanges(names(positions),
+        IRanges::IRanges(unname(positions), width = 1))
+    S4Vectors::mcols(gr)$ref <- refs
+    S4Vectors::mcols(gr)$alt <- alts
     whe <- WithinHostExperiment(
-        assays = list(altFreq = matrix(c(0.1, 0.2), ncol = 1)),
+        assays = list(altFreq = matrix(freqs, ncol = 1)),
         rowRanges = gr,
         colData = S4Vectors::DataFrame(sample_id = "S1"))
-    result <- dndsWithinHost(whe)
-    expect_true(is.na(result$dNdS[1]))
+    list(whe = annotateCodonChange(whe, gff, ref), gff = gff, ref = ref)
+}
+.jc <- function(p) -0.75 * log(1 - 4 * p / 3)
+
+test_that("NG86 synonymous sites match hand-computed values", {
+    sites <- WithinHostExperiment:::.NG_SYN_SITES
+    expect_equal(unname(sites["ATG"]), 0)
+    expect_equal(unname(sites["CTG"]), 4 / 3)
+    expect_equal(unname(sites["AAA"]), 1 / 3)
+    expect_equal(unname(sites["GGG"]), 1)
+    expect_false("TAA" %in% names(sites))
+    expect_length(sites, 61L)
 })
 
-test_that("dndsWithinHost errors with missing AA columns", {
-    gr <- GenomicRanges::GRanges("seg1",
-        IRanges::IRanges(100, width = 1))
+test_that("dndsWithinHost normalises by synonymous and nonsynonymous sites", {
+    ## position 1 A>G: ATG -> GTG (M -> V, nonsynonymous)
+    ## position 6 G>A: CTG -> CTA (L -> L, synonymous)
+    fx <- .ng_fixture(c(seg1 = 1, seg1 = 6), c("A", "G"), c("G", "A"))
+    res <- dndsWithinHost(fx$whe, gff = fx$gff, refFasta = fx$ref)
+    expect_s4_class(res, "DataFrame")
+    expect_equal(res$nS[1], 1L)
+    expect_equal(res$nN[1], 1L)
+    expect_equal(res$S_sites[1], 8 / 3)
+    expect_equal(res$N_sites[1], 28 / 3)
+    expect_equal(res$pS[1], 1 / (8 / 3))
+    expect_equal(res$pN[1], 1 / (28 / 3))
+    expect_equal(res$dNdS[1], .jc(3 / 28) / .jc(3 / 8), tolerance = 1e-12)
+    expect_equal(res$gene[1], "geneA")
+    expect_equal(res$gene_dNdS[1], res$dNdS[1])
+})
+
+test_that("variants outside CDS features are not counted as nonsynonymous", {
+    fx <- .ng_fixture(c(seg1 = 1, seg1 = 6, seg2 = 5), c("A", "G", "C"),
+                      c("G", "A", "T"))
+    res <- dndsWithinHost(fx$whe, gff = fx$gff, refFasta = fx$ref)
+    expect_equal(res$nN[1], 1L)
+    expect_equal(res$nS[1], 1L)
+})
+
+test_that("dndsWithinHost returns NA when no synonymous iSNV is present", {
+    fx <- .ng_fixture(c(seg1 = 1), "A", "G")
+    res <- dndsWithinHost(fx$whe, gff = fx$gff, refFasta = fx$ref)
+    expect_equal(res$nS[1], 0L)
+    expect_true(is.na(res$dNdS[1]))
+})
+
+test_that("dndsWithinHost respects qcPass", {
+    fx <- .ng_fixture(c(seg1 = 1, seg1 = 6), c("A", "G"), c("G", "A"))
+    whe <- fx$whe
+    SummarizedExperiment::assay(whe, "qcPass", withDimnames = FALSE) <-
+        matrix(FALSE, nrow = 2, ncol = 1)
+    res <- dndsWithinHost(whe, gff = fx$gff, refFasta = fx$ref)
+    expect_equal(res$nS[1] + res$nN[1], 0L)
+})
+
+test_that("dndsWithinHost requires the GFF3, FASTA and annotation", {
+    fx <- .ng_fixture(c(seg1 = 1), "A", "G")
+    expect_error(dndsWithinHost(fx$whe), "required")
+    gr <- GenomicRanges::GRanges("seg1", IRanges::IRanges(100, width = 1))
     S4Vectors::mcols(gr)$ref <- "A"
     S4Vectors::mcols(gr)$alt <- "T"
     whe <- WithinHostExperiment(
         assays = list(altFreq = matrix(0.1, ncol = 1)),
         rowRanges = gr,
         colData = S4Vectors::DataFrame(sample_id = "S1"))
-    expect_error(dndsWithinHost(whe), "REF_AA")
+    expect_error(dndsWithinHost(whe, gff = fx$gff, refFasta = fx$ref),
+                 "REF_AA")
 })
 
-test_that("dndsWithinHost includes per-gene breakdown", {
-    gr <- GenomicRanges::GRanges("seg1",
-        IRanges::IRanges(c(100, 200, 300), width = 1))
-    S4Vectors::mcols(gr)$ref <- c("A", "C", "G")
-    S4Vectors::mcols(gr)$alt <- c("T", "G", "A")
-    S4Vectors::mcols(gr)$REF_AA <- c("M", "L", "A")
-    S4Vectors::mcols(gr)$ALT_AA <- c("I", "L", "V")
-    S4Vectors::mcols(gr)$GFF_FEATURE <- c("ORF1a", "ORF1a", "S")
-    whe <- WithinHostExperiment(
-        assays = list(altFreq = matrix(c(0.1, 0.2, 0.3), ncol = 1)),
-        rowRanges = gr,
-        colData = S4Vectors::DataFrame(sample_id = "S1"))
-    result <- dndsWithinHost(whe)
-    expect_true("gene" %in% colnames(result))
-    expect_true("gene_nS" %in% colnames(result))
-    expect_true("gene_dNdS" %in% colnames(result))
+test_that("codons shared by overlapping CDS features are counted once", {
+    ref <- tempfile(fileext = ".fa")
+    writeLines(c(">seg1", "ATGCTGAAAGGGTAA"), ref)
+    gff <- tempfile(fileext = ".gff3")
+    writeLines(c("##gff-version 3",
+        "seg1\t.\tCDS\t1\t15\t.\t+\t0\tgene=geneA",
+        "seg1\t.\tCDS\t1\t9\t.\t+\t0\tgene=geneA"), gff)
+    sites <- WithinHostExperiment:::.cds_site_counts(
+        WithinHostExperiment:::.read_gff_cds(gff),
+        WithinHostExperiment:::.read_fasta_simple(ref))
+    expect_equal(sites$S_sites, 8 / 3)
+    expect_equal(sites$N_sites, 28 / 3)
 })
 
 test_that("estimateSelectionCoefficient basic computation", {
@@ -102,4 +126,10 @@ test_that("estimateSelectionCoefficient respects generation_time", {
     s1 <- estimateSelectionCoefficient(freqs, generation_time = 1)
     s2 <- estimateSelectionCoefficient(freqs, generation_time = 2)
     expect_equal(s2, s1 * 2, tolerance = 1e-10)
+})
+
+test_that("estimateSelectionCoefficient rejects decreasing times", {
+    expect_error(estimateSelectionCoefficient(c(0.1, 0.2, 0.3),
+                                              times = c(0, 5, 3)),
+                 "strictly increasing")
 })

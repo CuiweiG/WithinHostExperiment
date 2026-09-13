@@ -1,410 +1,544 @@
 #!/usr/bin/env Rscript
-## generate_readme_figures.R -?all real data, all package functions
-## Bendall et al. 2023 + Farjo et al. 2024 + NCBI GFF3
-library(ggplot2)
-library(patchwork)
-devtools::load_all(".", quiet = TRUE)
-library(S4Vectors)
-library(SummarizedExperiment)
-library(GenomicRanges)
+## generate_readme_figures.R
+##
+## Regenerates the six README figures from the public data in
+## inst/scripts/real_data, using the package functions throughout.
+##
+## Data
+##   Bendall et al. (2023) Nat. Commun. 14:272 -- all_variants_filtered.tsv,
+##     AvgCoverage.all, Transmission_pairs.csv
+##     (github.com/lauringlab/SARS-CoV-2_VOC_transmission_bottleneck)
+##   Farjo et al. (2024) J. Virol. 98:e01618-23 -- farjo_longitudinal/
+##   NCBI RefSeq NC_045512.2 -- sars2_NC045512.gff3, sars2_NC045512.fasta
+##
+## Run from the package root of a clone:
+##   Rscript inst/scripts/generate_readme_figures.R
+##
+## Outputs
+##   man/figures/fig1..fig6 *.png            README figures (300 dpi)
+##   readme_figure_output/*.pdf              vector versions (cairo_pdf)
+##   readme_figure_output/readme_figure_values.csv
+##                                           every number quoted in the captions
+##   readme_figure_output/input_md5.csv, sessionInfo.txt
 
-pal <- list(blue="#0072B2", vermillon="#D55E00", green="#009E73",
-  orange="#E69F00", skyblue="#56B4E9", purple="#CC79A7",
-  gray="#999999", black="#000000")
+suppressPackageStartupMessages({
+    library(ggplot2)
+    library(patchwork)
+    library(S4Vectors)
+    library(SummarizedExperiment)
+    library(GenomicRanges)
+})
+stopifnot(packageVersion("ggplot2") >= "3.5.0")
+if (!file.exists("DESCRIPTION") ||
+    read.dcf("DESCRIPTION", fields = "Package")[1, 1] != "WithinHostExperiment") {
+    stop("Run this script from the WithinHostExperiment package root.")
+}
+pkgload::load_all(".", quiet = TRUE)
 
-theme_pub <- function(bs = 10) {
-  theme_classic(base_size = bs, base_family = "sans") +
-    theme(axis.title=element_text(size=bs,color="black"),
-      axis.text=element_text(size=bs-1,color="black"),
-      axis.line=element_line(linewidth=0.5,color="black"),
-      axis.ticks=element_line(linewidth=0.35,color="black"),
-      axis.ticks.length=unit(2.5,"pt"),
-      legend.title=element_text(size=bs-1,face="bold"),
-      legend.text=element_text(size=bs-1),
-      legend.key.size=unit(10,"pt"),
-      legend.background=element_blank(),
-      panel.background=element_rect(fill="white",color=NA),
-      panel.grid=element_blank(),
-      strip.background=element_blank(),
-      strip.text=element_text(size=bs,face="bold"),
-      plot.background=element_rect(fill="white",color=NA),
-      plot.margin=margin(6,10,6,6),
-      plot.tag=element_text(size=bs+3,face="bold",color="black"))
+DATA <- file.path("inst", "scripts", "real_data")
+OUT <- "readme_figure_output"
+FIGDIR <- file.path("man", "figures")
+dir.create(OUT, showWarnings = FALSE)
+dir.create(FIGDIR, showWarnings = FALSE)
+
+inputs <- c(
+    variants = file.path(DATA, "all_variants_filtered.tsv"),
+    coverage = file.path(DATA, "AvgCoverage.all"),
+    pairs = file.path(DATA, "Transmission_pairs.csv"),
+    gff = file.path(DATA, "sars2_NC045512.gff3"),
+    fasta = file.path(DATA, "sars2_NC045512.fasta"),
+    farjo = file.path(DATA, "farjo_longitudinal")
+)
+missing_inputs <- inputs[!file.exists(inputs)]
+if (length(missing_inputs)) {
+    stop("Missing input data: ", paste(missing_inputs, collapse = ", "))
+}
+farjo_files <- sort(list.files(inputs[["farjo"]], pattern = "ivar",
+                               full.names = TRUE))
+md5_files <- c(inputs[setdiff(names(inputs), "farjo")], farjo_files)
+write.csv(data.frame(file = md5_files, md5 = unname(tools::md5sum(md5_files))),
+          file.path(OUT, "input_md5.csv"), row.names = FALSE)
+
+values <- data.frame(figure = character(), panel = character(),
+                     quantity = character(), value = character(),
+                     stringsAsFactors = FALSE)
+record <- function(figure, panel, quantity, value) {
+    values[nrow(values) + 1L, ] <<- list(figure, panel, quantity,
+                                         format(value, digits = 6))
+    invisible(value)
 }
 
-## ---- Bendall data ----
-DATA <- "inst/scripts/real_data"
-vars <- read.delim(file.path(DATA,"all_variants_filtered.tsv"),stringsAsFactors=FALSE)
-cov_l <- readLines(file.path(DATA,"AvgCoverage.all"))[-1]
-cov_l <- cov_l[nchar(trimws(cov_l))>0]
-cp <- strsplit(trimws(cov_l),"\\s+")
-sd <- tapply(as.numeric(sapply(cp,"[",2)),sub("_[12]$","",sapply(cp,"[",1)),mean)
-med_depth <- median(sd)
-pairs <- read.csv(file.path(DATA,"Transmission_pairs.csv"),stringsAsFactors=FALSE)
-vars$fd <- abs(vars$ALT_FREQ_1-vars$ALT_FREQ_2)
-vars$conc <- vars$fd<=0.02
-vars$mf <- (vars$ALT_FREQ_1+vars$ALT_FREQ_2)/2
-ip <- vars[vars$conc,]
-all_s <- unique(vars$sample)
-n_isnv <- nrow(vars); n_samp <- length(all_s)
-n_con <- sum(vars$conc); n_dis <- sum(!vars$conc)
-r2 <- cor(vars$ALT_FREQ_1,vars$ALT_FREQ_2)^2
+## Okabe-Ito colours
+pal <- list(blue = "#0072B2", vermillion = "#D55E00", green = "#009E73",
+            orange = "#E69F00", skyblue = "#56B4E9", purple = "#CC79A7",
+            grey = "#999999", black = "#000000")
+
+theme_pub <- function(bs = 10) {
+    theme_classic(base_size = bs, base_family = "sans") +
+        theme(axis.title = element_text(size = bs, colour = "black"),
+              axis.text = element_text(size = bs - 1, colour = "black"),
+              axis.line = element_line(linewidth = 0.5, colour = "black"),
+              axis.ticks = element_line(linewidth = 0.35, colour = "black"),
+              axis.ticks.length = unit(2.5, "pt"),
+              legend.title = element_text(size = bs - 1, face = "bold"),
+              legend.text = element_text(size = bs - 1),
+              legend.key.size = unit(10, "pt"),
+              legend.background = element_blank(),
+              panel.background = element_rect(fill = "white", colour = NA),
+              panel.grid = element_blank(),
+              strip.background = element_blank(),
+              strip.text = element_text(size = bs, face = "bold"),
+              plot.background = element_rect(fill = "white", colour = NA),
+              plot.margin = margin(6, 10, 6, 6),
+              plot.tag = element_text(size = bs + 3, face = "bold",
+                                      colour = "black"))
+}
+inside <- function(x, y, hjust = x, vjust = y) {
+    theme(legend.position = "inside",
+          legend.position.inside = c(x, y),
+          legend.justification.inside = c(hjust, vjust))
+}
+save_figure <- function(plot, name, width, height) {
+    ggsave(file.path(FIGDIR, paste0(name, ".png")), plot, width = width,
+           height = height, dpi = 300, bg = "white")
+    ggsave(file.path(OUT, paste0(name, ".pdf")), plot, width = width,
+           height = height, device = grDevices::cairo_pdf)
+    message("saved ", name)
+}
+
 GL <- 29903L
-pi_s <- function(f,L=GL,d=NULL){if(length(f)==0)return(0);p<-sum(2*f*(1-f))/L;if(!is.null(d)&&d>1)p<-p*d/(d-1);p}
-df_div <- do.call(rbind,lapply(all_s,function(s){
-  fa<-vars$ALT_FREQ_1[vars$sample==s]; fp<-ip$ALT_FREQ_1[ip$sample==s]
-  d<-if(s%in%names(sd))sd[[s]]else NULL
-  data.frame(sample=s,pi_n=pi_s(fa,d=d)*1e4,pi_q=pi_s(fp,d=d)*1e4,
-    n_n=length(fa),n_q=length(fp),stringsAsFactors=FALSE)}))
-wt <- wilcox.test(df_div$pi_n,df_div$pi_q,paired=TRUE,alternative="greater",exact=FALSE)
-mn <- median(df_div$pi_n); mq <- median(df_div$pi_q)
-cat(sprintf("Bendall: %d iSNVs, %d samples, R2=%.3f\n",n_isnv,n_samp,r2))
+## The iVar calls are on MN908947.3, which is the same sequence as NC_045512.2
+SEQNAME <- "MN908947.3"
+
+## ---- Bendall et al. (2023) data ----
+vars <- read.delim(inputs[["variants"]], stringsAsFactors = FALSE)
+cov_lines <- readLines(inputs[["coverage"]])[-1L]
+cov_lines <- cov_lines[nchar(trimws(cov_lines)) > 0L]
+cov_fields <- strsplit(trimws(cov_lines), "\\s+")
+depth_by_sample <- tapply(as.numeric(vapply(cov_fields, `[`, "", 2L)),
+                          sub("_[12]$", "", vapply(cov_fields, `[`, "", 1L)),
+                          mean)
+median_depth <- median(depth_by_sample)
+pairs <- read.csv(inputs[["pairs"]], stringsAsFactors = FALSE,
+                  fileEncoding = "UTF-8-BOM")
+
+vars$freq_diff <- abs(vars$ALT_FREQ_1 - vars$ALT_FREQ_2)
+vars$concordant <- vars$freq_diff <= 0.02
+vars$mean_freq <- (vars$ALT_FREQ_1 + vars$ALT_FREQ_2) / 2
+concordant <- vars[vars$concordant, ]
+samples <- unique(vars$sample)
+n_isnv <- nrow(vars)
+n_samples <- length(samples)
+n_conc <- sum(vars$concordant)
+n_disc <- sum(!vars$concordant)
+r2 <- cor(vars$ALT_FREQ_1, vars$ALT_FREQ_2)^2
+record("data", "", "iSNV calls", n_isnv)
+record("data", "", "samples", n_samples)
+record("data", "", "transmission pairs in metadata", length(unique(pairs$pair_id)))
+
+sample_depth <- function(s) if (s %in% names(depth_by_sample)) depth_by_sample[[s]] else NULL
+pi_sample <- function(freq, s) {
+    d <- sample_depth(s)
+    piISNV(freq, GL, meanDepth = if (!is.null(d) && d > 1) d else NULL)
+}
+div <- do.call(rbind, lapply(samples, function(s) {
+    data.frame(sample = s,
+               pi_naive = pi_sample(vars$ALT_FREQ_1[vars$sample == s], s) * 1e4,
+               pi_qc = pi_sample(concordant$ALT_FREQ_1[concordant$sample == s], s) * 1e4,
+               stringsAsFactors = FALSE)
+}))
+wt_pi <- wilcox.test(div$pi_naive, div$pi_qc, paired = TRUE,
+                     alternative = "greater", exact = FALSE)
+med_naive <- median(div$pi_naive)
+med_qc <- median(div$pi_qc)
 
 ## ================================================================
-## FIG 1 -?Replicate QC (unchanged)
+## Figure 1: replicate QC
 ## ================================================================
-ds <- data.frame(r1=vars$ALT_FREQ_1*100,r2=vars$ALT_FREQ_2*100,
-  st=factor(ifelse(vars$conc,"Concordant","Discordant"),levels=c("Concordant","Discordant")))
-p1a <- ggplot(ds,aes(r1,r2,fill=st))+geom_abline(slope=1,intercept=0,linetype="dashed",colour=pal$gray,linewidth=0.4)+
-  geom_point(shape=21,size=2.2,stroke=0.3,alpha=0.85,colour="white")+
-  annotate("text",x=97,y=5,hjust=1,vjust=0,label=sprintf("R\u00b2 = %.3f",r2),size=3.2)+
-  scale_fill_manual(name=NULL,values=c(Concordant=pal$green,Discordant=pal$vermillon),
-    labels=c(sprintf("Concordant (n=%d)",n_con),sprintf("Discordant (n=%d)",n_dis)))+
-  scale_x_continuous("Rep 1 freq. (%)",limits=c(0,100),breaks=c(0,25,50,75,100))+
-  scale_y_continuous("Rep 2 freq. (%)",limits=c(0,100),breaks=c(0,25,50,75,100))+
-  coord_equal()+labs(tag="a")+guides(fill=guide_legend(override.aes=list(size=3,alpha=1)))+
-  theme_pub(10)+theme(legend.position=c(0.35,0.98),legend.justification=c(0,1),
-    legend.background=element_rect(fill=alpha("white",0.92),colour=NA))
-bl <- data.frame(s=rep(df_div$sample,each=2),x=rep(c(1,2),times=n_samp),
-  pi=c(rbind(df_div$pi_n,df_div$pi_q)))
-p1b <- ggplot()+geom_line(data=bl,aes(x=x,y=pi,group=s),colour="grey60",linewidth=0.4,alpha=0.45)+
-  geom_point(data=data.frame(x=rep(c(1,2),each=n_samp),pi=c(df_div$pi_n,df_div$pi_q),
-    c=rep(c("N","Q"),each=n_samp)),aes(x=x,y=pi,colour=c),size=1.8,alpha=0.85,shape=16,
-    position=position_jitter(width=0.06,height=0,seed=42))+
-  annotate("point",x=1,y=mn,shape=18,size=5.5,colour=pal$black)+
-  annotate("point",x=2,y=mq,shape=18,size=5.5,colour=pal$black)+
-  annotate("text",x=2.45,y=max(df_div$pi_n)*0.95,label=sprintf("Wilcoxon p=%.1e\nn=%d",wt$p.value,n_samp),
-    hjust=1,vjust=1,size=3.0,colour=pal$vermillon,fontface="bold")+
-  scale_colour_manual(values=c(N=pal$orange,Q=pal$green),guide="none")+
-  scale_x_continuous(NULL,breaks=c(1,2),labels=c("Naive","QC"),limits=c(0.55,2.55))+
-  scale_y_continuous(expression(pi~"(x"*10^{-4}*")"),expand=expansion(mult=c(0.03,0.06)))+
-  labs(tag="b")+theme_pub(10)
-thr <- seq(0,0.20,by=0.01)
-pm <- sapply(thr,function(t){pi_v<-sapply(all_s,function(s){
-  f<-vars$ALT_FREQ_1[vars$sample==s&vars$fd<=t];d<-if(s%in%names(sd))sd[[s]]else NULL
-  pi_s(f,d=d)*1e4});median(pi_v)})
-dt <- data.frame(t=thr*100,pi=pm)
-p1c <- ggplot(dt,aes(t,pi))+geom_ribbon(aes(ymin=0,ymax=pi),fill=pal$blue,alpha=0.20)+
-  geom_line(colour=pal$blue,linewidth=0.9)+geom_point(size=1.5,colour=pal$blue)+
-  geom_vline(xintercept=2,linetype="dashed",colour=pal$vermillon,linewidth=0.5)+
-  geom_vline(xintercept=5,linetype="dashed",colour=pal$orange,linewidth=0.4)+
-  annotate("label",x=2,y=max(dt$pi)*0.85,label="2%",size=3.0,colour=pal$vermillon,fill="white",label.padding=unit(1.5,"pt"))+
-  annotate("label",x=5,y=max(dt$pi)*0.72,label="5%",size=3.0,colour=pal$orange,fill="white",label.padding=unit(1.5,"pt"))+
-  scale_x_continuous("|freq diff| threshold (%)",breaks=seq(0,20,5),expand=expansion(mult=c(0.01,0.03)))+
-  scale_y_continuous(expression("Median "*pi~"(x"*10^{-4}*")"),expand=expansion(mult=c(0.02,0.10)))+
-  labs(tag="c")+theme_pub(10)
-fig1 <- (p1a|p1b|p1c)+plot_annotation(theme=theme(plot.background=element_rect(fill="white",color=NA)))
-cat("Saving Fig 1...\n")
-ggsave("man/figures/fig1_replicate_qc.png",fig1,width=7.5,height=3.1,dpi=300,bg="white")
+record("fig1", "a", "concordant calls (|freq diff| <= 0.02)", n_conc)
+record("fig1", "a", "discordant calls", n_disc)
+record("fig1", "a", "replicate R2", r2)
+record("fig1", "b", "median pi naive (x1e-4)", med_naive)
+record("fig1", "b", "median pi QC (x1e-4)", med_qc)
+record("fig1", "b", "paired one-sided Wilcoxon p (naive > QC)", wt_pi$p.value)
+record("fig1", "b", "samples", n_samples)
 
-## ================================================================
-## FIG 2 -?Frequency spectrum (unchanged)
-## ================================================================
-vars$fc <- factor(ifelse(vars$conc,"Concordant","Discordant"),levels=c("Concordant","Discordant"))
-ns <- length(unique(paste(vars$POS,vars$REF,vars$ALT)))
-p2 <- ggplot(vars,aes(x=mf*100,fill=fc))+geom_histogram(binwidth=2.5,colour="white",linewidth=0.2,alpha=0.90,boundary=0)+
-  geom_vline(xintercept=3,linetype="dashed",colour=pal$black,linewidth=0.55)+
-  annotate("text",x=4.5,y=Inf,hjust=0,vjust=1.6,label="3%",colour=pal$black,size=3.2)+
-  scale_fill_manual(name=NULL,values=c(Concordant=pal$blue,Discordant=pal$vermillon),
-    labels=c(sprintf("Concordant (n=%d)",n_con),sprintf("Discordant (n=%d)",n_dis)))+
-  scale_x_continuous("Alt allele frequency (%)",breaks=seq(0,100,20),expand=expansion(mult=c(0.01,0.02)))+
-  scale_y_continuous("Number of iSNVs",expand=expansion(mult=c(0,0.10)))+
-  labs(caption=sprintf("n=%d calls | %d sites | %d samples",n_isnv,ns,n_samp))+
-  theme_pub(10)+theme(legend.position=c(0.98,0.98),legend.justification=c(1,1),
-    plot.caption=element_text(size=7,color="grey50",margin=margin(t=4)))
-cat("Saving Fig 2...\n")
-ggsave("man/figures/fig2_frequency_spectrum.png",p2,width=4.2,height=3.2,dpi=300,bg="white")
+rep_df <- data.frame(r1 = vars$ALT_FREQ_1 * 100, r2 = vars$ALT_FREQ_2 * 100,
+                     status = factor(ifelse(vars$concordant, "Concordant", "Discordant"),
+                                     levels = c("Concordant", "Discordant")))
+p1a <- ggplot(rep_df, aes(r1, r2, fill = status)) +
+    geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = pal$grey, linewidth = 0.4) +
+    geom_point(shape = 21, size = 2.2, stroke = 0.3, alpha = 0.85, colour = "white") +
+    annotate("text", x = 97, y = 5, hjust = 1, vjust = 0,
+             label = sprintf("R² = %.3f", r2), size = 3.2) +
+    scale_fill_manual(name = NULL, values = c(Concordant = pal$green, Discordant = pal$vermillion),
+                      labels = c(sprintf("Concordant (n = %d)", n_conc),
+                                 sprintf("Discordant (n = %d)", n_disc))) +
+    scale_x_continuous("Replicate 1 frequency (%)", limits = c(0, 100), breaks = seq(0, 100, 25)) +
+    scale_y_continuous("Replicate 2 frequency (%)", limits = c(0, 100), breaks = seq(0, 100, 25)) +
+    coord_equal() + labs(tag = "a") +
+    guides(fill = guide_legend(override.aes = list(size = 3, alpha = 1))) +
+    theme_pub(10) + inside(0.35, 0.98, 0, 1) +
+    theme(legend.background = element_rect(fill = alpha("white", 0.92), colour = NA))
+
+pi_long <- data.frame(sample = rep(div$sample, each = 2L), x = rep(c(1, 2), times = n_samples),
+                      pi = c(rbind(div$pi_naive, div$pi_qc)),
+                      condition = rep(c("Naive", "QC"), times = n_samples))
+p1b <- ggplot(pi_long, aes(x = x, y = pi)) +
+    geom_line(aes(group = sample), colour = "grey60", linewidth = 0.4, alpha = 0.45) +
+    geom_point(aes(colour = condition), size = 1.8, alpha = 0.85, shape = 16,
+               position = position_jitter(width = 0.06, height = 0, seed = 42)) +
+    annotate("point", x = c(1, 2), y = c(med_naive, med_qc), shape = 18, size = 5.5, colour = pal$black) +
+    annotate("text", x = 2.45, y = max(div$pi_naive) * 0.95, hjust = 1, vjust = 1, size = 3.0,
+             label = sprintf("Wilcoxon p = %.1e\nn = %d", wt_pi$p.value, n_samples)) +
+    scale_colour_manual(values = c(Naive = pal$orange, QC = pal$green), guide = "none") +
+    scale_x_continuous(NULL, breaks = c(1, 2), labels = c("Naive", "QC"), limits = c(0.55, 2.55)) +
+    scale_y_continuous(expression(pi ~ "(" * 10^{-4} * ")"), expand = expansion(mult = c(0.03, 0.06))) +
+    labs(tag = "b") + theme_pub(10)
+
+thresholds <- seq(0, 0.20, by = 0.01)
+median_pi_by_threshold <- vapply(thresholds, function(t) {
+    median(vapply(samples, function(s) {
+        pi_sample(vars$ALT_FREQ_1[vars$sample == s & vars$freq_diff <= t], s) * 1e4
+    }, numeric(1)))
+}, numeric(1))
+thr_df <- data.frame(t = thresholds * 100, pi = median_pi_by_threshold)
+p1c <- ggplot(thr_df, aes(t, pi)) +
+    geom_ribbon(aes(ymin = 0, ymax = pi), fill = pal$blue, alpha = 0.20) +
+    geom_line(colour = pal$blue, linewidth = 0.9) + geom_point(size = 1.5, colour = pal$blue) +
+    geom_vline(xintercept = c(2, 5), linetype = "dashed", colour = c(pal$vermillion, pal$orange), linewidth = 0.45) +
+    scale_x_continuous("|Frequency difference| threshold (%)", breaks = seq(0, 20, 5),
+                       expand = expansion(mult = c(0.01, 0.03))) +
+    scale_y_continuous(expression("Median" ~ pi ~ "(" * 10^{-4} * ")"), expand = expansion(mult = c(0.02, 0.10))) +
+    labs(tag = "c") + theme_pub(10)
+save_figure((p1a | p1b | p1c), "fig1_replicate_qc", 7.5, 3.1)
 
 ## ================================================================
-## FIG 3 -?Complete workflow: depth + GFF + contamination + sharing
+## Figure 2: frequency spectrum
 ## ================================================================
-## a: depth
-p3a <- ggplot(data.frame(d=as.numeric(sd)),aes(x=d))+
-  geom_histogram(fill=pal$orange,colour="white",linewidth=0.2,binwidth=300,alpha=0.90,boundary=0)+
-  geom_vline(xintercept=med_depth,linetype="dashed",colour=pal$black,linewidth=0.5)+
-  annotate("text",x=med_depth+200,y=Inf,hjust=0,vjust=1.8,
-    label=sprintf("median\n%s x",format(round(med_depth),big.mark=",")),size=3.0,lineheight=1.15)+
-  scale_x_continuous("Mean read depth",labels=scales::label_comma(),expand=expansion(mult=c(0.01,0.05)))+
-  scale_y_continuous("Samples",expand=expansion(mult=c(0,0.15)))+labs(tag="a")+theme_pub(10)
-
-## b: GFF annotation
-gff <- file.path(DATA,"sars2_NC045512.gff3")
-gff_lines <- readLines(gff); gff_lines <- gsub("NC_045512\\.2","MN908947.3",gff_lines)
-gff_tmp <- tempfile(fileext=".gff3"); writeLines(gff_lines,gff_tmp)
-gr_mc <- GRanges("MN908947.3",IRanges::IRanges(ip$POS,width=1))
-mcols(gr_mc)$ref <- ip$REF; mcols(gr_mc)$alt <- ip$ALT
-fm <- matrix(ip$ALT_FREQ_1,ncol=1); colnames(fm) <- "pooled"
-whe_mc <- WithinHostExperiment(assays=list(altFreq=fm),rowRanges=gr_mc,
-  colData=DataFrame(sample_id="pooled"))
-whe_mc <- annotateFromGFF(whe_mc,gff_tmp)
-gv <- mcols(rowRanges(whe_mc))$GFF_FEATURE; gv[is.na(gv)] <- "intergenic"
-gt <- as.data.frame(table(Gene=gv),stringsAsFactors=FALSE)
-gt <- gt[order(gt$Freq,decreasing=TRUE),]; gt$Gene <- factor(gt$Gene,levels=rev(gt$Gene))
-p3b <- ggplot(gt,aes(y=Gene,x=Freq))+geom_col(fill=pal$blue,colour="white",linewidth=0.2,alpha=0.90)+
-  geom_text(aes(label=Freq),hjust=-0.25,size=3.1)+
-  scale_x_continuous("Concordant iSNVs (GFF-annotated)",expand=expansion(mult=c(0,0.22)))+
-  labs(y=NULL,tag="b")+theme_pub(10)+theme(axis.text.y=element_text(size=9))
-
-## Build pair_df for sharing and lollipop panels
-pdf2 <- merge(pairs[pairs$Transmission_indiv=="A",c("sample","pair_id")],
-  pairs[pairs$Transmission_indiv=="B",c("sample","pair_id")],by="pair_id",suffixes=c("_d","_r"))
-
-## c: best pair lollipop (HH46)
-bp <- "HH46"; bpr <- pdf2[pdf2$pair_id==bp,]
-dv_best <- ip[ip$sample==bpr$sample_d[1],]
-df_loll <- do.call(rbind,lapply(seq_len(nrow(dv_best)),function(j){
-  rr <- vars[vars$sample==bpr$sample_r[1]&vars$POS==dv_best$POS[j]&vars$ALT==dv_best$ALT[j],]
-  gn <- gv[ip$POS==dv_best$POS[j]][1]; if(is.na(gn)) gn <- "intergenic"
-  data.frame(pos=dv_best$POS[j],gene=gn,df=dv_best$ALT_FREQ_1[j]*100,
-    shared=nrow(rr)>0,stringsAsFactors=FALSE)}))
-df_loll$lb <- sprintf("%s (%s)",df_loll$pos,df_loll$gene)
-df_loll$lb <- factor(df_loll$lb,levels=rev(df_loll$lb))
-nl <- sum(!df_loll$shared)
-p3c <- ggplot(df_loll,aes(y=lb,x=df,fill=shared))+
-  geom_col(width=0.6,alpha=0.90)+
-  geom_text(aes(label=sprintf("%.1f%%",df)),hjust=-0.15,size=2.8)+
-  scale_fill_manual(name=NULL,values=c("TRUE"=pal$green,"FALSE"=pal$vermillon),
-    labels=c("TRUE"="Detected","FALSE"="Lost"))+
-  scale_x_continuous("Donor freq. (%)",expand=expansion(mult=c(0,0.30)))+
-  annotate("text",x=max(df_loll$df)*1.2,y=0.6,hjust=1,vjust=0,
-    label=sprintf("Pair %s\n%d/%d lost",bp,nl,nrow(df_loll)),size=3.0,lineheight=1.2)+
-  labs(y=NULL,tag="c")+theme_pub(10)+
-  theme(legend.position=c(0.98,0.02),legend.justification=c(1,0),axis.text.y=element_text(size=8))
-
-## d: variant sharing
-sh <- do.call(rbind,lapply(seq_len(nrow(pdf2)),function(i){
-  dv<-ip[ip$sample==pdf2$sample_d[i],];nd<-nrow(dv);if(nd==0)return(NULL)
-  ns<-sum(sapply(seq_len(nd),function(j)nrow(vars[vars$sample==pdf2$sample_r[i]&vars$POS==dv$POS[j]&vars$ALT==dv$ALT[j],])>0))
-  data.frame(pid=pdf2$pair_id[i],nd=nd,ns=ns,nl=nd-ns,stringsAsFactors=FALSE)}))
-sh <- sh[order(sh$nd,decreasing=TRUE),]; sh$rk <- seq_len(nrow(sh))
-nz <- sum(sh$ns==0); pz <- round(100*nz/nrow(sh))
-dfs <- rbind(data.frame(rk=sh$rk,ct=sh$ns,tp="Shared"),data.frame(rk=sh$rk,ct=sh$nl,tp="Lost"))
-dfs$tp <- factor(dfs$tp,levels=c("Lost","Shared"))
-p3d <- ggplot(dfs,aes(x=rk,y=ct,fill=tp))+geom_col(width=0.7,alpha=0.90)+
-  scale_fill_manual(name=NULL,values=c(Lost=pal$vermillon,Shared=pal$green))+
-  annotate("text",x=nrow(sh)*0.95,y=Inf,hjust=1,vjust=1.5,
-    label=sprintf("%d/%d (%.0f%%)\nzero shared",nz,nrow(sh),pz),size=3.0,lineheight=1.2)+
-  scale_x_continuous("Transmission pair",expand=expansion(mult=c(0.01,0.01)))+
-  scale_y_continuous("Donor iSNVs",expand=expansion(mult=c(0,0.12)))+
-  labs(tag="d")+theme_pub(10)+theme(legend.position=c(0.02,0.98),legend.justification=c(0,1))
-
-fig3 <- (p3a+p3b)/(p3c+p3d)+plot_annotation(theme=theme(plot.background=element_rect(fill="white",color=NA)))
-cat("Saving Fig 3...\n")
-ggsave("man/figures/fig3_qc_overview.png",fig3,width=7.0,height=5.8,dpi=300,bg="white")
+n_sites <- length(unique(paste(vars$POS, vars$REF, vars$ALT)))
+record("fig2", "", "distinct sites", n_sites)
+vars$status <- factor(ifelse(vars$concordant, "Concordant", "Discordant"),
+                      levels = c("Concordant", "Discordant"))
+record("fig2", "", "discordant calls below 10% mean frequency", sum(!vars$concordant & vars$mean_freq < 0.10))
+p2 <- ggplot(vars, aes(x = mean_freq * 100, fill = status)) +
+    geom_histogram(binwidth = 2.5, colour = "white", linewidth = 0.2, alpha = 0.90, boundary = 0) +
+    geom_vline(xintercept = 3, linetype = "dashed", colour = pal$black, linewidth = 0.55) +
+    annotate("text", x = 4.5, y = Inf, hjust = 0, vjust = 1.6, label = "3%", size = 3.2) +
+    scale_fill_manual(name = NULL, values = c(Concordant = pal$blue, Discordant = pal$vermillion),
+                      labels = c(sprintf("Concordant (n = %d)", n_conc), sprintf("Discordant (n = %d)", n_disc))) +
+    scale_x_continuous("Alternative allele frequency (%)", breaks = seq(0, 100, 20),
+                       expand = expansion(mult = c(0.01, 0.02))) +
+    scale_y_continuous("iSNVs", expand = expansion(mult = c(0, 0.10))) +
+    labs(caption = sprintf("n = %d calls | %d sites | %d samples", n_isnv, n_sites, n_samples)) +
+    theme_pub(10) + inside(0.98, 0.98) +
+    theme(plot.caption = element_text(size = 7, colour = "grey40", margin = margin(t = 4)))
+save_figure(p2, "fig2_frequency_spectrum", 4.2, 3.2)
 
 ## ================================================================
-## FIG 4 -?Longitudinal: diversity + trajectories + SFS + temporal QC
+## Figure 3: depth, annotation, transmission
 ## ================================================================
-cat("Loading Farjo data...\n")
-ff <- sort(list.files(file.path(DATA,"farjo_longitudinal"),pattern="ivar",full.names=TRUE))
-ntp <- length(ff)
-whe_f <- readWithinHostTable(ff,format="ivar",
-  colData=DataFrame(sample_id=paste0("d",seq_len(ntp)),host_id=rep("p",ntp),timepoint=seq_len(ntp)))
-whe_f <- flagISNV(whe_f,ISNVFilter(minDepth=100L,minFreq=0.03,maxFreq=0.97))
+record("fig3", "a", "median mean read depth", median_depth)
+p3a <- ggplot(data.frame(d = as.numeric(depth_by_sample)), aes(x = d)) +
+    geom_histogram(fill = pal$orange, colour = "white", linewidth = 0.2, binwidth = 300, alpha = 0.90, boundary = 0) +
+    geom_vline(xintercept = median_depth, linetype = "dashed", colour = pal$black, linewidth = 0.5) +
+    annotate("text", x = median_depth + 200, y = Inf, hjust = 0, vjust = 1.8, size = 3.0, lineheight = 1.15,
+             label = sprintf("median\n%s×", format(round(median_depth), big.mark = ","))) +
+    scale_x_continuous("Mean read depth", labels = scales::label_comma(), expand = expansion(mult = c(0.01, 0.05))) +
+    scale_y_continuous("Samples", expand = expansion(mult = c(0, 0.15))) + labs(tag = "a") + theme_pub(10)
 
-div_f <- as.data.frame(calcDiversity(whe_f,genomeLength=GL,indices=c("pi","richness")))
-div_f$day <- seq_len(ntp); div_f$pv <- as.numeric(div_f$pi)*1e4; div_f$rv <- as.numeric(div_f$richness)
-pk <- div_f$day[which.max(div_f$rv)]
-cat(sprintf("  %d timepoints, peak=%d iSNVs at day %d\n",ntp,max(div_f$rv),pk))
+gff_tmp <- tempfile(fileext = ".gff3")
+writeLines(gsub("NC_045512\\.2", SEQNAME, readLines(inputs[["gff"]])), gff_tmp)
+fasta_tmp <- tempfile(fileext = ".fa")
+fasta_lines <- readLines(inputs[["fasta"]])
+fasta_lines[1L] <- paste0(">", SEQNAME)
+writeLines(fasta_lines, fasta_tmp)
 
-## a: diversity arc
-p4a <- ggplot(div_f,aes(x=day))+
-  geom_col(aes(y=rv),fill=pal$skyblue,alpha=0.50,width=0.6)+
-  geom_line(aes(y=pv*max(rv)/max(pv)),colour=pal$vermillon,linewidth=1.0)+
-  geom_point(aes(y=pv*max(rv)/max(pv)),colour=pal$vermillon,size=2.5)+
-  scale_y_continuous("QC-passed iSNVs (bars)",
-    sec.axis=sec_axis(~.*max(div_f$pv)/max(div_f$rv),name=expression(pi~"(x"*10^{-4}*", line)")),
-    expand=expansion(mult=c(0,0.08)))+
-  scale_x_continuous("Timepoint",breaks=seq_len(ntp))+labs(tag="a")+theme_pub(10)+
-  theme(axis.title.y.right=element_text(colour=pal$vermillon),axis.text.y.right=element_text(colour=pal$vermillon))
+gr_conc <- GRanges(SEQNAME, IRanges::IRanges(concordant$POS, width = 1))
+mcols(gr_conc)$ref <- concordant$REF
+mcols(gr_conc)$alt <- concordant$ALT
+whe_conc <- WithinHostExperiment(
+    assays = list(altFreq = matrix(concordant$ALT_FREQ_1, ncol = 1, dimnames = list(NULL, "pooled"))),
+    rowRanges = gr_conc, colData = DataFrame(sample_id = "pooled"))
+whe_conc <- annotateFromGFF(whe_conc, gff_tmp)
+gene_of_site <- mcols(rowRanges(whe_conc))$GFF_FEATURE
+gene_of_site[is.na(gene_of_site)] <- "intergenic"
+gene_table <- as.data.frame(table(Gene = gene_of_site), stringsAsFactors = FALSE)
+gene_table <- gene_table[order(gene_table$Freq, decreasing = TRUE), ]
+gene_table$Gene <- factor(gene_table$Gene, levels = rev(gene_table$Gene))
+p3b <- ggplot(gene_table, aes(y = Gene, x = Freq)) +
+    geom_col(fill = pal$blue, colour = "white", linewidth = 0.2, alpha = 0.90) +
+    geom_text(aes(label = Freq), hjust = -0.25, size = 3.1) +
+    scale_x_continuous("Concordant iSNVs", expand = expansion(mult = c(0, 0.22))) +
+    labs(y = NULL, tag = "b") + theme_pub(10) + theme(axis.text.y = element_text(size = 9))
 
-## b: frequency trajectories
-tj <- as.data.frame(trackFrequency(whe_f,hostCol="host_id",timeCol="timepoint"))
-vr <- tapply(tj$frequency,tj$variant_key,function(x)diff(range(x)))
-t10 <- names(sort(vr,decreasing=TRUE))[1:min(10,length(vr))]
-tjt <- tj[tj$variant_key%in%t10,]
-p4b <- ggplot(tjt,aes(x=timepoint,y=frequency*100,colour=variant_key,group=variant_key))+
-  geom_line(linewidth=0.7,alpha=0.80)+geom_point(size=1.5,alpha=0.90)+
-  geom_hline(yintercept=3,linetype="dotted",colour=pal$gray,linewidth=0.3)+
-  scale_x_continuous("Timepoint",breaks=seq_len(ntp))+
-  scale_y_continuous("Alt allele freq. (%)",limits=c(0,100))+
-  labs(colour=NULL,tag="b")+theme_pub(10)+theme(legend.position="none")
+pair_df <- merge(pairs[pairs$Transmission_indiv == "A", c("sample", "pair_id")],
+                 pairs[pairs$Transmission_indiv == "B", c("sample", "pair_id")],
+                 by = "pair_id", suffixes = c("_donor", "_recipient"))
+in_recipient <- function(recipient, pos, alt) {
+    any(vars$sample == recipient & vars$POS == pos & vars$ALT == alt)
+}
+example_pair <- "HH46"
+ep <- pair_df[pair_df$pair_id == example_pair, ]
+donor_calls <- concordant[concordant$sample == ep$sample_donor[1], ]
+loll <- data.frame(pos = donor_calls$POS,
+                   gene = vapply(donor_calls$POS, function(p) {
+                       g <- gene_of_site[concordant$POS == p][1]
+                       if (is.na(g)) "intergenic" else g
+                   }, character(1)),
+                   donor_freq = donor_calls$ALT_FREQ_1 * 100,
+                   detected = mapply(in_recipient, ep$sample_recipient[1], donor_calls$POS, donor_calls$ALT),
+                   stringsAsFactors = FALSE)
+loll$label <- factor(sprintf("%s (%s)", loll$pos, loll$gene), levels = rev(sprintf("%s (%s)", loll$pos, loll$gene)))
+n_lost <- sum(!loll$detected)
+record("fig3", "c", paste("donor iSNVs in pair", example_pair), nrow(loll))
+record("fig3", "c", paste("donor iSNVs not detected in recipient, pair", example_pair), n_lost)
+p3c <- ggplot(loll, aes(y = label, x = donor_freq, fill = detected)) +
+    geom_col(width = 0.6, alpha = 0.90) +
+    geom_text(aes(label = sprintf("%.1f%%", donor_freq)), hjust = -0.15, size = 2.8) +
+    scale_fill_manual(name = NULL, values = c("TRUE" = pal$green, "FALSE" = pal$vermillion),
+                      labels = c("TRUE" = "Detected", "FALSE" = "Not detected")) +
+    scale_x_continuous("Donor frequency (%)", expand = expansion(mult = c(0, 0.30))) +
+    annotate("text", x = max(loll$donor_freq) * 1.2, y = 0.6, hjust = 1, vjust = 0, size = 3.0, lineheight = 1.2,
+             label = sprintf("Pair %s\n%d/%d not detected", example_pair, n_lost, nrow(loll))) +
+    labs(y = NULL, tag = "c") + theme_pub(10) + inside(0.98, 0.02) +
+    theme(axis.text.y = element_text(size = 8))
 
-## c: SFS evolution (day 1 vs peak vs day 9)
-kd <- c(1,pk,ntp)
-sfs_tl <- lapply(kd,function(d)buildSFS(whe_f,sampleIdx=d,fold=TRUE,genomeLength=GL,nBins=8))
-names(sfs_tl) <- paste0("Day ",kd)
-df_st <- do.call(rbind,lapply(names(sfs_tl),function(nm){
-  s<-sfs_tl[[nm]]; br<-s@breaks; mid<-(br[-length(br)]+br[-1L])/2; tot<-max(sum(s@counts),1)
-  data.frame(freq=mid*100,prop=s@counts/tot,day=nm,n=sum(s@counts),stringsAsFactors=FALSE)}))
-df_st$day <- factor(df_st$day,levels=names(sfs_tl))
-p4c <- ggplot(df_st,aes(x=freq,y=prop,fill=day))+
-  geom_col(position="dodge",alpha=0.85,colour="white",linewidth=0.15)+
-  scale_fill_manual(name=NULL,values=c(pal$skyblue,pal$vermillon,pal$green))+
-  scale_x_continuous("Minor allele freq. (%)")+
-  scale_y_continuous("Proportion",expand=expansion(mult=c(0,0.12)))+
-  labs(tag="c")+theme_pub(10)+theme(legend.position=c(0.98,0.98),legend.justification=c(1,1))
-
-## d: temporal QC -?persistent vs transient
-whe_ft <- flagTemporalInconsistency(whe_f,minTimepoints=2L)
-tc <- mcols(rowRanges(whe_ft))$temporal_class
-n_per <- sum(tc=="persistent",na.rm=TRUE); n_tra <- sum(tc=="transient",na.rm=TRUE)
-cat(sprintf("  Temporal QC: %d persistent, %d transient\n",n_per,n_tra))
-df_tc <- data.frame(class=c("Persistent\n(>= 2 timepoints)","Transient\n(1 timepoint only)"),
-  count=c(n_per,n_tra),stringsAsFactors=FALSE)
-df_tc$class <- factor(df_tc$class,levels=df_tc$class)
-p4d <- ggplot(df_tc,aes(x=class,y=count,fill=class))+
-  geom_col(width=0.6,alpha=0.90)+
-  geom_text(aes(label=count),vjust=-0.3,size=3.5,fontface="bold")+
-  scale_fill_manual(values=c(pal$green,pal$vermillon),guide="none")+
-  scale_y_continuous("Variant sites",expand=expansion(mult=c(0,0.15)))+
-  annotate("text",x=1.5,y=max(df_tc$count)*0.5,
-    label=sprintf("%.0f%% of iSNVs are transient\n(likely artefacts)",100*n_tra/(n_per+n_tra)),
-    size=3.0,lineheight=1.2)+
-  labs(x=NULL,tag="d")+theme_pub(10)
-
-fig4 <- (p4a+p4b)/(p4c+p4d)+plot_annotation(theme=theme(plot.background=element_rect(fill="white",color=NA)))
-cat("Saving Fig 4...\n")
-ggsave("man/figures/fig4_diversity_landscape.png",fig4,width=7.0,height=5.8,dpi=300,bg="white")
-
-## ================================================================
-## FIG 5 -?SFS paradigm + pop genetics
-## ================================================================
-tajD <- function(f,L,dep,nc=100L){S<-length(f);if(S==0)return(0);n<-min(max(as.integer(round(dep)),2L),nc);
-  ph<-(2/L)*sum(f*(1-f))*n/(n-1L);a1<-sum(1/seq_len(n-1L));a2<-sum(1/(seq_len(n-1L))^2);
-  b1<-(n+1)/(3*(n-1));b2<-2*(n^2+n+3)/(9*n*(n-1));c1<-b1-1/a1;c2<-b2-(n+2)/(a1*n)+a2/a1^2;
-  e1<-c1/a1;e2<-c2/(a1^2+a2);ds<-ph*L-S/a1;dn<-sqrt(e1*S+e2*S*(S-1));if(dn>0)ds/dn else 0}
-dtj <- do.call(rbind,lapply(all_s,function(s){f<-ip$ALT_FREQ_1[ip$sample==s];
-  d<-if(s%in%names(sd))sd[[s]]else 100; data.frame(D=tajD(f,GL,d),S=length(f))}))
-dtp <- dtj[dtj$S>0,]; medD <- median(dtp$D); pn <- round(100*sum(dtp$D<0)/nrow(dtp))
-
-## a: Tajima's D
-p5a <- ggplot(dtp,aes(x=D))+geom_histogram(bins=15,fill=pal$blue,colour="white",linewidth=0.2,alpha=0.90)+
-  geom_vline(xintercept=0,linetype="dashed",colour=pal$gray,linewidth=0.5)+
-  geom_vline(xintercept=medD,colour=pal$vermillon,linewidth=0.6)+
-  annotate("text",x=max(dtp$D)*0.95,y=Inf,vjust=1.5,hjust=1,
-    label=sprintf("median=%.2f\n%d%% < 0",medD,pn),size=3.0,colour=pal$vermillon,lineheight=1.2)+
-  scale_x_continuous("Tajima's D (n capped at 100)")+
-  scale_y_continuous("Samples",expand=expansion(mult=c(0,0.12)))+labs(tag="a")+theme_pub(10)
-
-## b: dN/dS
-gv2 <- ip$GFF_FEATURE; gv2[is.na(gv2)|gv2==""] <- "Intergenic"
-sy <- !is.na(ip$REF_AA)&!is.na(ip$ALT_AA)&ip$REF_AA==ip$ALT_AA
-ddn <- do.call(rbind,lapply(unique(gv2),function(g){i<-which(gv2==g);nS<-sum(sy[i]);nN<-sum(!sy[i]);
-  if(nS+nN<2)return(NULL);data.frame(gene=g,nS=nS,nN=nN,dNdS=if(nS>0)nN/nS else NA_real_,
-    has=nS>0,stringsAsFactors=FALSE)}))
-if(!is.null(ddn)&&nrow(ddn)>0){
-  ddn<-ddn[order(ddn$nS+ddn$nN,decreasing=TRUE),]
-  go<-c(setdiff(ddn$gene,"Intergenic"),"Intergenic");go<-go[go%in%ddn$gene]
-  ddn$gene<-factor(ddn$gene,levels=rev(go));ddn$dp<-ifelse(is.na(ddn$dNdS),0,ddn$dNdS)
-  p5b <- ggplot(ddn,aes(y=gene,x=dp,fill=has))+geom_col(width=0.6,alpha=0.90)+
-    geom_vline(xintercept=1,linetype="dashed",colour=pal$gray,linewidth=0.5)+
-    geom_text(aes(label=ifelse(has,sprintf("%.1f (%dN/%dS)",dNdS,nN,nS),sprintf("%dN, 0S",nN))),
-      hjust=-0.05,size=2.7)+
-    scale_fill_manual(values=c("TRUE"=pal$vermillon,"FALSE"=pal$gray),guide="none")+
-    scale_x_continuous("Within-host dN/dS",expand=expansion(mult=c(0,0.40)))+
-    labs(y=NULL,tag="b")+theme_pub(10)+theme(axis.text.y=element_text(size=9))
-} else { p5b <- ggplot()+labs(tag="b")+theme_void() }
-
-## c: ranked pi lollipop
-dr <- df_div[order(df_div$pi_n,decreasing=TRUE),]; dr$rk <- seq_len(nrow(dr))
-dra <- rbind(data.frame(rk=dr$rk,pi=dr$pi_n,tp="Naive"),data.frame(rk=dr$rk,pi=dr$pi_q,tp="QC"))
-dra$tp <- factor(dra$tp,levels=c("Naive","QC"))
-p5c <- ggplot(dra,aes(rk,pi,colour=tp))+
-  geom_segment(data=dr,aes(x=rk,xend=rk,y=pi_q,yend=pi_n),colour="grey65",linewidth=0.5,inherit.aes=FALSE)+
-  geom_point(size=1.5,alpha=0.90,shape=16)+
-  geom_hline(yintercept=mn,linetype="dotted",colour=pal$orange,linewidth=0.5)+
-  geom_hline(yintercept=mq,linetype="dotted",colour=pal$green,linewidth=0.5)+
-  scale_colour_manual(name=NULL,values=c(Naive=pal$orange,QC=pal$green),
-    guide=guide_legend(override.aes=list(size=3)))+
-  scale_x_continuous("Sample rank",expand=expansion(mult=c(0.01,0.01)))+
-  scale_y_continuous(expression(pi~"(x"*10^{-4}*")"),expand=expansion(mult=c(0,0.08)))+
-  labs(tag="c")+theme_pub(10)+theme(legend.position=c(0.98,0.98),legend.justification=c(1,1))
-
-## d: SFS naive vs QC with bias correction
-gr_all <- GRanges("MN908947.3",IRanges::IRanges(vars$POS,width=1))
-mcols(gr_all)$ref <- vars$REF; mcols(gr_all)$alt <- vars$ALT
-fmn <- matrix(vars$ALT_FREQ_1,ncol=1); colnames(fmn) <- "naive"
-dmn <- matrix(as.integer(vars$TOTAL_DP_1),ncol=1); colnames(dmn) <- "naive"
-wn <- WithinHostExperiment(assays=list(altFreq=fmn,totalDepth=dmn),rowRanges=gr_all,
-  colData=DataFrame(sample_id="naive"))
-gr_qc <- GRanges("MN908947.3",IRanges::IRanges(ip$POS,width=1))
-fmq <- matrix(ip$ALT_FREQ_1,ncol=1); colnames(fmq) <- "qc"
-dmq <- matrix(as.integer(ip$TOTAL_DP_1),ncol=1); colnames(dmq) <- "qc"
-wq <- WithinHostExperiment(assays=list(altFreq=fmq,totalDepth=dmq),rowRanges=gr_qc,
-  colData=DataFrame(sample_id="qc"))
-sn <- buildSFS(wn,fold=TRUE,genomeLength=GL,nBins=10)
-sq <- buildSFS(wq,fold=TRUE,genomeLength=GL,nBins=10)
-sc <- correctSFSBias(sq,method="binomial")
-.s2d <- function(s,lb){br<-s@breaks;mid<-(br[-length(br)]+br[-1L])/2
-  data.frame(freq=mid*100,count=s@counts,lb=lb)}
-dfs5 <- rbind(.s2d(sn,sprintf("Naive (n=%d)",sn@nSites)),
-  .s2d(sq,sprintf("QC (n=%d)",sq@nSites)),
-  .s2d(sc,sprintf("QC+bias corr. (n=%d)",sc@nSites)))
-dfs5$lb <- factor(dfs5$lb,levels=unique(dfs5$lb))
-p5d <- ggplot(dfs5,aes(x=freq,y=count,fill=lb))+
-  geom_col(position="dodge",alpha=0.85,width=2.0,colour="white",linewidth=0.15)+
-  scale_fill_manual(name=NULL,values=c(pal$orange,pal$green,pal$blue))+
-  scale_x_continuous("Minor allele freq. (%)")+
-  scale_y_continuous("iSNVs",expand=expansion(mult=c(0,0.12)))+
-  labs(tag="d")+theme_pub(10)+theme(legend.position=c(0.98,0.98),legend.justification=c(1,1),
-    legend.text=element_text(size=7.5))
-
-fig5 <- (p5a+p5b)/(p5c+p5d)+plot_annotation(theme=theme(plot.background=element_rect(fill="white",color=NA)))
-cat("Saving Fig 5...\n")
-ggsave("man/figures/fig5_evolutionary_analysis.png",fig5,width=7.5,height=5.8,dpi=300,bg="white")
+sharing <- do.call(rbind, lapply(seq_len(nrow(pair_df)), function(i) {
+    dv <- concordant[concordant$sample == pair_df$sample_donor[i], ]
+    if (nrow(dv) == 0L) return(NULL)
+    shared <- sum(mapply(in_recipient, pair_df$sample_recipient[i], dv$POS, dv$ALT))
+    data.frame(pair = pair_df$pair_id[i], donor = nrow(dv), shared = shared, lost = nrow(dv) - shared)
+}))
+sharing <- sharing[order(sharing$donor, decreasing = TRUE), ]
+sharing$rank <- seq_len(nrow(sharing))
+n_zero <- sum(sharing$shared == 0)
+record("fig3", "d", "pairs with at least one concordant donor iSNV", nrow(sharing))
+record("fig3", "d", "pairs sharing no donor iSNV", n_zero)
+record("fig3", "d", "percentage sharing none", 100 * n_zero / nrow(sharing))
+share_long <- rbind(data.frame(rank = sharing$rank, count = sharing$shared, type = "Shared"),
+                    data.frame(rank = sharing$rank, count = sharing$lost, type = "Not detected"))
+share_long$type <- factor(share_long$type, levels = c("Not detected", "Shared"))
+p3d <- ggplot(share_long, aes(x = rank, y = count, fill = type)) +
+    geom_col(width = 0.7, alpha = 0.90) +
+    scale_fill_manual(name = NULL, values = c("Not detected" = pal$vermillion, Shared = pal$green)) +
+    annotate("text", x = nrow(sharing) * 0.95, y = Inf, hjust = 1, vjust = 1.5, size = 3.0, lineheight = 1.2,
+             label = sprintf("%d/%d (%.0f%%)\nshare none", n_zero, nrow(sharing), 100 * n_zero / nrow(sharing))) +
+    scale_x_continuous("Transmission pair", expand = expansion(mult = c(0.01, 0.01))) +
+    scale_y_continuous("Donor iSNVs", expand = expansion(mult = c(0, 0.12))) +
+    labs(tag = "d") + theme_pub(10) + inside(0.02, 0.98)
+save_figure((p3a + p3b) / (p3c + p3d), "fig3_qc_overview", 7.0, 5.8)
 
 ## ================================================================
-## FIG 6 -?QC preserves signal: Tajima overlay + compareSFS
+## Figure 4: longitudinal sampling (Farjo et al. 2024)
 ## ================================================================
-dtn <- do.call(rbind,lapply(all_s,function(s){f<-vars$ALT_FREQ_1[vars$sample==s];
-  if(length(f)==0)return(NULL);d<-if(s%in%names(sd))sd[[s]]else 100;
-  data.frame(D=tajD(f,GL,d),cond="Naive",stringsAsFactors=FALSE)}))
-db <- rbind(dtn,data.frame(D=dtp$D,cond="QC")); db$cond <- factor(db$cond,levels=c("Naive","QC"))
-wtD <- wilcox.test(dtn$D,dtp$D,exact=FALSE)
+n_tp <- length(farjo_files)
+whe_f <- readWithinHostTable(farjo_files, format = "ivar",
+    colData = DataFrame(sample_id = paste0("t", seq_len(n_tp)), host_id = "p", timepoint = seq_len(n_tp)))
+whe_f <- flagISNV(whe_f, ISNVFilter(minDepth = 100L, minFreq = 0.03, maxFreq = 0.97))
+div_f <- as.data.frame(calcDiversity(whe_f, genomeLength = GL, indices = c("pi", "richness")))
+div_f$timepoint <- seq_len(n_tp)
+div_f$pi_e4 <- as.numeric(div_f$pi) * 1e4
+div_f$richness <- as.numeric(div_f$richness)
+peak <- div_f$timepoint[which.max(div_f$richness)]
+record("fig4", "", "timepoints", n_tp)
+record("fig4", "a", "peak QC-passed iSNVs", max(div_f$richness))
+record("fig4", "a", "timepoint of peak", peak)
+record("fig4", "a", "timepoint of maximum pi", div_f$timepoint[which.max(div_f$pi_e4)])
+scale_factor <- max(div_f$richness) / max(div_f$pi_e4)
+p4a <- ggplot(div_f, aes(x = timepoint)) +
+    geom_col(aes(y = richness), fill = pal$skyblue, alpha = 0.50, width = 0.6) +
+    geom_line(aes(y = pi_e4 * scale_factor), colour = pal$vermillion, linewidth = 1.0) +
+    geom_point(aes(y = pi_e4 * scale_factor), colour = pal$vermillion, size = 2.5) +
+    scale_y_continuous("QC-passed iSNVs (bars)",
+                       sec.axis = sec_axis(~ . / scale_factor, name = expression(pi ~ "(" * 10^{-4} * ", line)")),
+                       expand = expansion(mult = c(0, 0.08))) +
+    scale_x_continuous("Timepoint", breaks = seq_len(n_tp)) + labs(tag = "a") + theme_pub(10) +
+    theme(axis.title.y.right = element_text(colour = pal$vermillion),
+          axis.text.y.right = element_text(colour = pal$vermillion))
 
-p6a <- ggplot(db,aes(x=D,fill=cond))+
-  geom_histogram(bins=14,colour="white",linewidth=0.2,alpha=0.55,position="identity")+
-  geom_vline(xintercept=0,linetype="dashed",colour=pal$gray,linewidth=0.4)+
-  scale_fill_manual(name=NULL,values=c(Naive=pal$orange,QC=pal$green))+
-  annotate("text",x=max(db$D)*0.95,y=Inf,hjust=1,vjust=1.5,
-    label=sprintf("Wilcoxon p=%.2f (n.s.)\nQC preserves signal",wtD$p.value),
-    size=3.0,lineheight=1.2)+
-  scale_x_continuous("Tajima's D")+scale_y_continuous("Samples",expand=expansion(mult=c(0,0.15)))+
-  labs(tag="a")+theme_pub(10)+theme(legend.position=c(0.02,0.98),legend.justification=c(0,1))
+traj <- as.data.frame(trackFrequency(whe_f, hostCol = "host_id", timeCol = "timepoint"))
+freq_range <- tapply(traj$frequency, traj$variant_key, function(x) diff(range(x)))
+top10 <- names(sort(freq_range, decreasing = TRUE))[seq_len(min(10L, length(freq_range)))]
+p4b <- ggplot(traj[traj$variant_key %in% top10, ],
+              aes(x = timepoint, y = frequency * 100, colour = variant_key, group = variant_key)) +
+    geom_line(linewidth = 0.7, alpha = 0.80) + geom_point(size = 1.5, alpha = 0.90) +
+    geom_hline(yintercept = 3, linetype = "dotted", colour = pal$grey, linewidth = 0.3) +
+    scale_colour_manual(values = rep(unname(unlist(pal[c("blue", "vermillion", "green", "orange", "skyblue", "purple", "black", "grey")])), 2L)) +
+    scale_x_continuous("Timepoint", breaks = seq_len(n_tp)) +
+    scale_y_continuous("Alternative allele frequency (%)", limits = c(0, 100)) +
+    labs(colour = NULL, tag = "b") + theme_pub(10) + theme(legend.position = "none")
 
-## b: compareSFS -?formal test
-comp <- compareSFS(sn,sq)
-cat(sprintf("  compareSFS: chi2=%.1f, p=%.3f\n",comp$chisq_stat,comp$chisq_p))
-dfp <- rbind(data.frame(freq=(sn@breaks[-length(sn@breaks)]+sn@breaks[-1])/2*100,
-  prop=comp$proportions1,lb="Naive"),
-  data.frame(freq=(sq@breaks[-length(sq@breaks)]+sq@breaks[-1])/2*100,
-  prop=comp$proportions2,lb="QC"))
-dfp$lb <- factor(dfp$lb,levels=c("Naive","QC"))
-p6b <- ggplot(dfp,aes(x=freq,y=prop,fill=lb))+
-  geom_col(position="dodge",alpha=0.80,colour="white",linewidth=0.15)+
-  scale_fill_manual(name=NULL,values=c(Naive=pal$orange,QC=pal$green))+
-  annotate("label",x=40,y=max(dfp$prop)*0.70,hjust=0.5,vjust=0.5,
-    label=sprintf("chi2 = %.1f\np = %.3f",comp$chisq_stat,comp$chisq_p),
-    size=3.2,lineheight=1.3,fill=alpha("white",0.90),label.padding=unit(4,"pt"))+
-  scale_x_continuous("Minor allele freq. (%)")+
-  scale_y_continuous("Proportion",expand=expansion(mult=c(0,0.12)))+
-  labs(tag="b")+theme_pub(10)+theme(legend.position=c(0.75,0.85),legend.justification=c(0,1))
+key_tp <- unique(c(1L, peak, n_tp))
+sfs_tp <- lapply(key_tp, function(d) buildSFS(whe_f, sampleIdx = d, fold = TRUE, genomeLength = GL, nBins = 8))
+sfs_df <- do.call(rbind, lapply(seq_along(key_tp), function(k) {
+    s <- sfs_tp[[k]]; br <- s@breaks
+    data.frame(freq = (br[-length(br)] + br[-1L]) / 2 * 100, prop = s@counts / max(sum(s@counts), 1),
+               tp = paste("Timepoint", key_tp[k]), stringsAsFactors = FALSE)
+}))
+sfs_df$tp <- factor(sfs_df$tp, levels = unique(sfs_df$tp))
+p4c <- ggplot(sfs_df, aes(x = freq, y = prop, fill = tp)) +
+    geom_col(position = "dodge", alpha = 0.85, colour = "white", linewidth = 0.15) +
+    scale_fill_manual(name = NULL, values = c(pal$skyblue, pal$vermillion, pal$green)[seq_along(key_tp)]) +
+    scale_x_continuous("Minor allele frequency (%)") +
+    scale_y_continuous("Proportion", expand = expansion(mult = c(0, 0.12))) +
+    labs(tag = "c") + theme_pub(10) + inside(0.98, 0.98)
 
-fig6 <- (p6a|p6b)+plot_annotation(theme=theme(plot.background=element_rect(fill="white",color=NA)))
-cat("Saving Fig 6...\n")
-ggsave("man/figures/fig6_consensus_validation.png",fig6,width=7.0,height=3.2,dpi=300,bg="white")
+whe_ft <- flagTemporalInconsistency(whe_f, minTimepoints = 2L)
+temporal_class <- mcols(rowRanges(whe_ft))$temporal_class
+n_persistent <- sum(temporal_class == "persistent", na.rm = TRUE)
+n_transient <- sum(temporal_class == "transient", na.rm = TRUE)
+record("fig4", "d", "persistent sites (>= 2 timepoints)", n_persistent)
+record("fig4", "d", "transient sites (1 timepoint)", n_transient)
+record("fig4", "d", "percentage transient", 100 * n_transient / (n_persistent + n_transient))
+tc_df <- data.frame(class = factor(c("Persistent\n(≥ 2 timepoints)", "Transient\n(1 timepoint)"),
+                                   levels = c("Persistent\n(≥ 2 timepoints)", "Transient\n(1 timepoint)")),
+                    count = c(n_persistent, n_transient))
+p4d <- ggplot(tc_df, aes(x = class, y = count, fill = class)) +
+    geom_col(width = 0.6, alpha = 0.90) +
+    geom_text(aes(label = count), vjust = -0.3, size = 3.5, fontface = "bold") +
+    scale_fill_manual(values = c(pal$green, pal$vermillion), guide = "none") +
+    scale_y_continuous("Variant sites", expand = expansion(mult = c(0, 0.15))) +
+    labs(x = NULL, tag = "d") + theme_pub(10)
+save_figure((p4a + p4b) / (p4c + p4d), "fig4_diversity_landscape", 7.0, 5.8)
 
-cat("\n=== ALL 6 FIGURES SAVED ===\n")
-cat(sprintf("R: %s\n",R.version.string))
-cat("Bendall 2023 + Farjo 2024 + NCBI GFF3. All real data.\n")
+## ================================================================
+## Figure 5: population genetics
+## ================================================================
+tajima_sample <- function(freq, depth, cap = 100L) {
+    S <- length(freq)
+    if (S == 0L) return(NA_real_)
+    n <- min(max(as.integer(round(depth)), 2L), cap)
+    tajimaD(S, n, piISNV(freq, GL, meanDepth = n), GL)
+}
+taj <- do.call(rbind, lapply(samples, function(s) {
+    d <- sample_depth(s); if (is.null(d)) d <- 100
+    data.frame(sample = s,
+               D_qc = tajima_sample(concordant$ALT_FREQ_1[concordant$sample == s], d),
+               D_naive = tajima_sample(vars$ALT_FREQ_1[vars$sample == s], d),
+               S_qc = sum(concordant$sample == s))
+}))
+taj_qc <- taj[taj$S_qc > 0 & is.finite(taj$D_qc), ]
+record("fig5", "a", "samples with >= 1 concordant iSNV", nrow(taj_qc))
+record("fig5", "a", "median Tajima D (QC, n capped at 100)", median(taj_qc$D_qc))
+record("fig5", "a", "percentage of samples with D < 0", 100 * mean(taj_qc$D_qc < 0))
+p5a <- ggplot(taj_qc, aes(x = D_qc)) +
+    geom_histogram(bins = 15, fill = pal$blue, colour = "white", linewidth = 0.2, alpha = 0.90) +
+    geom_vline(xintercept = 0, linetype = "dashed", colour = pal$grey, linewidth = 0.5) +
+    geom_vline(xintercept = median(taj_qc$D_qc), colour = pal$vermillion, linewidth = 0.6) +
+    annotate("text", x = max(taj_qc$D_qc), y = Inf, vjust = 1.5, hjust = 1, size = 3.0, lineheight = 1.2,
+             colour = pal$vermillion,
+             label = sprintf("median = %.2f\n%.0f%% < 0", median(taj_qc$D_qc), 100 * mean(taj_qc$D_qc < 0))) +
+    scale_x_continuous("Tajima's D (n capped at 100)") +
+    scale_y_continuous("Samples", expand = expansion(mult = c(0, 0.12))) + labs(tag = "a") + theme_pub(10)
+
+## b: Nei-Gojobori dN/dS, pooling the concordant iSNVs of all samples
+whe_codon <- annotateCodonChange(whe_conc, gff_tmp, fasta_tmp)
+dnds <- as.data.frame(dndsWithinHost(whe_codon, gff = gff_tmp, refFasta = fasta_tmp, usePassedOnly = FALSE))
+record("fig5", "b", "pooled synonymous iSNVs", dnds$nS[1])
+record("fig5", "b", "pooled nonsynonymous iSNVs", dnds$nN[1])
+record("fig5", "b", "pooled dN/dS (Jukes-Cantor)", dnds$dNdS[1])
+record("fig5", "b", "concordant iSNVs outside CDS or unannotated", nrow(concordant) - dnds$nS[1] - dnds$nN[1])
+gene_dnds <- dnds[!is.na(dnds$gene), ]
+for (i in seq_len(nrow(gene_dnds))) {
+    record("fig5", "b", paste0("dN/dS ", gene_dnds$gene[i], " (", gene_dnds$gene_nN[i], "N/", gene_dnds$gene_nS[i], "S)"),
+           gene_dnds$gene_dNdS[i])
+}
+gene_dnds <- gene_dnds[gene_dnds$gene_nS + gene_dnds$gene_nN >= 2L, ]
+gene_dnds <- gene_dnds[order(gene_dnds$gene_nS + gene_dnds$gene_nN, decreasing = TRUE), ]
+gene_dnds$gene <- factor(gene_dnds$gene, levels = rev(gene_dnds$gene))
+gene_dnds$has_syn <- gene_dnds$gene_nS > 0
+gene_dnds$bar <- ifelse(is.na(gene_dnds$gene_dNdS), 0, gene_dnds$gene_dNdS)
+p5b <- ggplot(gene_dnds, aes(y = gene, x = bar, fill = has_syn)) +
+    geom_col(width = 0.6, alpha = 0.90) +
+    geom_vline(xintercept = 1, linetype = "dashed", colour = pal$grey, linewidth = 0.5) +
+    geom_text(aes(label = ifelse(has_syn, sprintf("%.2f (%dN/%dS)", gene_dNdS, gene_nN, gene_nS),
+                                 sprintf("%dN, 0S", gene_nN))), hjust = -0.05, size = 2.7) +
+    scale_fill_manual(values = c("TRUE" = pal$vermillion, "FALSE" = pal$grey), guide = "none") +
+    scale_x_continuous("dN/dS (Nei-Gojobori, pooled)", expand = expansion(mult = c(0, 0.45))) +
+    labs(y = NULL, tag = "b") + theme_pub(10) + theme(axis.text.y = element_text(size = 9))
+
+ranked <- div[order(div$pi_naive, decreasing = TRUE), ]
+ranked$rank <- seq_len(nrow(ranked))
+ranked_long <- rbind(data.frame(rank = ranked$rank, pi = ranked$pi_naive, type = "Naive"),
+                     data.frame(rank = ranked$rank, pi = ranked$pi_qc, type = "QC"))
+p5c <- ggplot(ranked_long, aes(rank, pi, colour = type)) +
+    geom_segment(data = ranked, aes(x = rank, xend = rank, y = pi_qc, yend = pi_naive),
+                 colour = "grey65", linewidth = 0.5, inherit.aes = FALSE) +
+    geom_point(size = 1.5, alpha = 0.90, shape = 16) +
+    geom_hline(yintercept = c(med_naive, med_qc), linetype = "dotted", colour = c(pal$orange, pal$green), linewidth = 0.5) +
+    scale_colour_manual(name = NULL, values = c(Naive = pal$orange, QC = pal$green),
+                        guide = guide_legend(override.aes = list(size = 3))) +
+    scale_x_continuous("Sample rank", expand = expansion(mult = c(0.01, 0.01))) +
+    scale_y_continuous(expression(pi ~ "(" * 10^{-4} * ")"), expand = expansion(mult = c(0, 0.08))) +
+    labs(tag = "c") + theme_pub(10) + inside(0.98, 0.98)
+
+pooled_whe <- function(df, id) {
+    gr <- GRanges(SEQNAME, IRanges::IRanges(df$POS, width = 1))
+    mcols(gr)$ref <- df$REF; mcols(gr)$alt <- df$ALT
+    WithinHostExperiment(assays = list(altFreq = matrix(df$ALT_FREQ_1, ncol = 1, dimnames = list(NULL, id)),
+                                       totalDepth = matrix(as.integer(df$TOTAL_DP_1), ncol = 1, dimnames = list(NULL, id))),
+                         rowRanges = gr, colData = DataFrame(sample_id = id))
+}
+sfs_naive <- buildSFS(pooled_whe(vars, "naive"), fold = TRUE, genomeLength = GL, nBins = 10)
+sfs_qc <- buildSFS(pooled_whe(concordant, "qc"), fold = TRUE, genomeLength = GL, nBins = 10)
+sfs_corrected <- correctSFSBias(sfs_qc, method = "binomial")
+sfs_frame <- function(s, label) {
+    br <- s@breaks
+    data.frame(freq = (br[-length(br)] + br[-1L]) / 2 * 100, count = s@counts, label = label)
+}
+sfs5 <- rbind(sfs_frame(sfs_naive, sprintf("Naive (n = %d)", sfs_naive@nSites)),
+              sfs_frame(sfs_qc, sprintf("QC (n = %d)", sfs_qc@nSites)),
+              sfs_frame(sfs_corrected, sprintf("QC, bias-corrected (n = %d)", sfs_corrected@nSites)))
+sfs5$label <- factor(sfs5$label, levels = unique(sfs5$label))
+p5d <- ggplot(sfs5, aes(x = freq, y = count, fill = label)) +
+    geom_col(position = "dodge", alpha = 0.85, width = 2.0, colour = "white", linewidth = 0.15) +
+    scale_fill_manual(name = NULL, values = c(pal$orange, pal$green, pal$blue)) +
+    scale_x_continuous("Minor allele frequency (%)") +
+    scale_y_continuous("iSNVs", expand = expansion(mult = c(0, 0.12))) +
+    labs(tag = "d") + theme_pub(10) + inside(0.98, 0.98) + theme(legend.text = element_text(size = 7.5))
+save_figure((p5a + p5b) / (p5c + p5d), "fig5_evolutionary_analysis", 7.5, 5.8)
+
+## ================================================================
+## Figure 6: effect of QC on Tajima's D and the SFS
+## ================================================================
+taj_naive <- taj[is.finite(taj$D_naive), ]
+wt_D <- wilcox.test(taj_naive$D_naive, taj_qc$D_qc, exact = FALSE)
+record("fig6", "a", "median Tajima D naive", median(taj_naive$D_naive))
+record("fig6", "a", "median Tajima D QC", median(taj_qc$D_qc))
+record("fig6", "a", "Wilcoxon rank-sum p (naive vs QC)", wt_D$p.value)
+d_long <- rbind(data.frame(D = taj_naive$D_naive, condition = "Naive"),
+                data.frame(D = taj_qc$D_qc, condition = "QC"))
+d_long$condition <- factor(d_long$condition, levels = c("Naive", "QC"))
+p6a <- ggplot(d_long, aes(x = D, fill = condition)) +
+    geom_histogram(bins = 14, colour = "white", linewidth = 0.2, alpha = 0.55, position = "identity") +
+    geom_vline(xintercept = 0, linetype = "dashed", colour = pal$grey, linewidth = 0.4) +
+    scale_fill_manual(name = NULL, values = c(Naive = pal$orange, QC = pal$green)) +
+    annotate("text", x = max(d_long$D), y = Inf, hjust = 1, vjust = 1.5, size = 3.0,
+             label = sprintf("Wilcoxon p = %.2f", wt_D$p.value)) +
+    scale_x_continuous("Tajima's D") + scale_y_continuous("Samples", expand = expansion(mult = c(0, 0.15))) +
+    labs(tag = "a") + theme_pub(10) + inside(0.02, 0.98)
+
+comparison <- compareSFS(sfs_naive, sfs_qc)
+record("fig6", "b", "compareSFS chi-squared", comparison$chisq_stat)
+record("fig6", "b", "compareSFS p", comparison$chisq_p)
+prop_df <- rbind(data.frame(freq = (sfs_naive@breaks[-length(sfs_naive@breaks)] + sfs_naive@breaks[-1L]) / 2 * 100,
+                            prop = comparison$proportions1, label = "Naive"),
+                 data.frame(freq = (sfs_qc@breaks[-length(sfs_qc@breaks)] + sfs_qc@breaks[-1L]) / 2 * 100,
+                            prop = comparison$proportions2, label = "QC"))
+prop_df$label <- factor(prop_df$label, levels = c("Naive", "QC"))
+p6b <- ggplot(prop_df, aes(x = freq, y = prop, fill = label)) +
+    geom_col(position = "dodge", alpha = 0.80, colour = "white", linewidth = 0.15) +
+    scale_fill_manual(name = NULL, values = c(Naive = pal$orange, QC = pal$green)) +
+    annotate("label", x = 40, y = max(prop_df$prop) * 0.70, size = 3.2, lineheight = 1.3,
+             fill = alpha("white", 0.90), label.padding = unit(4, "pt"),
+             label = sprintf("χ² = %.1f\np = %.3f", comparison$chisq_stat, comparison$chisq_p)) +
+    scale_x_continuous("Minor allele frequency (%)") +
+    scale_y_continuous("Proportion", expand = expansion(mult = c(0, 0.12))) +
+    labs(tag = "b") + theme_pub(10) + inside(0.75, 0.85, 0, 1)
+save_figure((p6a | p6b), "fig6_consensus_validation", 7.0, 3.2)
+
+write.csv(values, file.path(OUT, "readme_figure_values.csv"), row.names = FALSE)
+writeLines(capture.output(sessionInfo()), file.path(OUT, "sessionInfo.txt"))
+print(values, row.names = FALSE, right = FALSE)
+message("All six figures saved. Values: ", file.path(OUT, "readme_figure_values.csv"))

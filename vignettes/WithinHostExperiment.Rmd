@@ -542,20 +542,17 @@ non-standard codon usage, consider SnpEff or ANNOVAR upstream.
 
 ### Within-host dN/dS
 
-Classify iSNVs as synonymous or nonsynonymous and compute the
-ratio per sample. Requires amino acid annotation in
-`mcols(rowRanges)`:
+`dndsWithinHost()` counts synonymous and nonsynonymous iSNVs, divides
+each by the synonymous and nonsynonymous sites of the coding
+sequences (Nei and Gojobori 1986) and applies the Jukes-Cantor
+correction. It uses the codon annotation from `annotateCodonChange()`
+together with the same GFF3 and reference FASTA:
 
 ```{r dnds}
-## Add minimal amino acid annotation for demonstration
-rr <- SummarizedExperiment::rowRanges(whe_qc)
-S4Vectors::mcols(rr)$REF_AA <- sample(c("M", "L", "A", "V"),
-    length(rr), replace = TRUE)
-S4Vectors::mcols(rr)$ALT_AA <- sample(c("I", "L", "T", "V"),
-    length(rr), replace = TRUE)
-SummarizedExperiment::rowRanges(whe_qc) <- rr
-dnds <- dndsWithinHost(whe_qc)
-dnds
+if (file.exists(ref_fa)) {
+    dnds <- dndsWithinHost(whe_codon, gff = gff_cds, refFasta = ref_fa)
+    dnds[, c("sample_id", "nS", "nN", "S_sites", "N_sites", "dNdS")]
+}
 ```
 
 ### Selection coefficients from frequency trajectories

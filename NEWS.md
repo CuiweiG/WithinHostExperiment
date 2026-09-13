@@ -30,8 +30,6 @@
   **Fay and Wu's H** (new) from a single SFS object;
   `compareSFS()` tests SFS homogeneity between samples;
   `plotSFS()` provides publication-quality SFS visualisation.
-  This is the first Bioconductor implementation of a structured
-  within-host SFS with integrated bias correction.
 * **Temporal QC for longitudinal data**:
   `flagTemporalInconsistency()` identifies transient iSNVs that
   appear at only one timepoint (likely artefacts) versus persistent
@@ -55,9 +53,11 @@
   alleles using the standard genetic code, and classifies each
   SNV as Synonymous, Nonsynonymous, or Nonsense -- all in pure R
   with no external annotation tools required.
-* Selection analysis: `dndsWithinHost()` for within-host dN/dS
-  estimation, `estimateSelectionCoefficient()` for time-series
-  selection coefficient inference.
+* Selection analysis: `dndsWithinHost()` estimates within-host dN/dS
+  with the Nei-Gojobori counting method, normalising by the synonymous
+  and nonsynonymous sites of the CDS features in a GFF3 and reference
+  FASTA, with Jukes-Cantor correction; `estimateSelectionCoefficient()`
+  for time-series selection coefficient inference.
 * Multi-caller consensus: `consensusISNV()` for deriving consensus
   variant calls across callers, `calcCallerConcordance()` for
   inter-caller agreement metrics, `benchmarkCallers()` for caller
@@ -90,11 +90,12 @@
 * Interoperability: `as(whe, "VRanges")`,
   `as(vr, "WithinHostExperiment")`, and
   `as(whe, "data.frame")` for seamless integration.
-* Batch operations: `combineRows()` and `combineCols()` for
-  merging experiments.
+* Batch operations: methods for the S4Vectors `combineRows()` and
+  `combineCols()` generics merge experiments together with their QC
+  logs and filters.
 * Publication-quality visualisation: `plotFrequencySpectrum()`,
   `plotPairScatter()`, `plotQCDashboard()`, and
-  `plotFrequencyTrajectory()` with colorblind-safe palette
+  `plotFrequencyTrajectory()` with a colour-blind-safe palette
   (Wong 2011).
 * SARS-CoV-2 case study in vignette with multi-pathogen
   validation (Influenza A, HIV-1, M. tuberculosis).
