@@ -14,13 +14,14 @@ simpsonISNV(freq)
 Numeric scalar. Simpson diversity index.
 }
 \description{
-Calculates Simpson diversity for biallelic iSNV sites:
-\deqn{D = 1 - \sum_i [p_i^2 + (1 - p_i)^2]}
+Calculates Simpson diversity summed over biallelic iSNV sites:
+\deqn{D = \sum_i \left[1 - p_i^2 - (1 - p_i)^2\right] =
+  \sum_i 2 p_i (1 - p_i)}
 where \eqn{p_i} is the alternative allele frequency at site
-\eqn{i}. Each site contributes two allele probabilities
-(\eqn{p} and \eqn{1-p}), and the index measures the
-probability that two randomly drawn alleles differ. Higher
-values indicate greater diversity.
+\eqn{i}. Each site contributes the probability that two alleles
+drawn at random at that site differ (at most 0.5), so the index is
+the expected number of differing sites. Higher values indicate
+greater diversity.
 }
 \examples{
 simpsonISNV(c(0.05, 0.15, 0.30, 0.45))

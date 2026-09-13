@@ -161,3 +161,11 @@ test_that("calcDiversity warns when altCount missing for chao1", {
         "altCount"
     )
 })
+
+test_that("simpsonISNV sums per-site diversity and is never negative", {
+    freq <- c(0.05, 0.1, 0.2, 0.3)
+    expect_equal(simpsonISNV(freq), sum(2 * freq * (1 - freq)),
+                 tolerance = 1e-12)
+    expect_true(simpsonISNV(c(0.1, 0.2)) > 0)
+    expect_equal(simpsonISNV(c(0.5, 0.5)), 1, tolerance = 1e-12)
+})

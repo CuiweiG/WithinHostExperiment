@@ -45,9 +45,10 @@ NULL
         } else {
             length(lines)
         }
-        seq_lines <- lines[start:end]
-        seq_lines <- seq_lines[!startsWith(seq_lines, ">")]
-        seqs[[name]] <- paste(seq_lines, collapse = "")
+        seq_lines <- if (start <= end) lines[start:end] else character()
+        ## Whitespace inside a record would shift every later coordinate
+        seqs[[name]] <- gsub("[[:space:]]", "",
+                             paste(seq_lines, collapse = ""))
     }
     seqs
 }
@@ -59,6 +60,124 @@ NULL
               N = "N", n = "n")
     chars <- strsplit(seq_str, "")[[1L]]
     paste(rev(comp[chars]), collapse = "")
+}
+
+#' @keywords internal
+.read_gff_cds <- function(gff, nameCol = "gene") {
+    lines <- readLines(gff)
+    lines <- lines[!startsWith(lines, "#") & nchar(lines) > 0]
+    fields <- strsplit(lines, "\t")
+    fields <- fields[vapply(fields, length, integer(1)) >= 9L]
+    if (length(fields) == 0L)
+        stop("No valid GFF lines found.")
+
+    gff_df <- data.frame(
+        seqid  = vapply(fields, `[`, character(1), 1L),
+        type   = vapply(fields, `[`, character(1), 3L),
+        start  = as.integer(vapply(fields, `[`, character(1), 4L)),
+        end    = as.integer(vapply(fields, `[`, character(1), 5L)),
+        strand = vapply(fields, `[`, character(1), 7L),
+        phase  = vapply(fields, `[`, character(1), 8L),
+        attrs  = vapply(fields, `[`, character(1), 9L),
+        stringsAsFactors = FALSE
+    )
+    cds <- gff_df[gff_df$type == "CDS", , drop = FALSE]
+    if (nrow(cds) == 0L)
+        stop("No CDS features found in GFF file. Available types: ",
+             paste(unique(gff_df$type), collapse = ", "))
+
+    cds$phase <- as.integer(ifelse(cds$phase == ".", "0", cds$phase))
+
+    parse_attr <- function(attr_str, key) {
+        pairs <- strsplit(attr_str, ";")[[1L]]
+        for (p in pairs) {
+            kv <- strsplit(trimws(p), "=")[[1L]]
+            if (length(kv) == 2L && kv[1L] == key) return(kv[2L])
+        }
+        NA_character_
+    }
+    cds$gene <- vapply(cds$attrs, parse_attr, character(1),
+                       key = nameCol, USE.NAMES = FALSE)
+    if (all(is.na(cds$gene)) && nameCol != "Name")
+        cds$gene <- vapply(cds$attrs, parse_attr, character(1),
+                           key = "Name", USE.NAMES = FALSE)
+    if (all(is.na(cds$gene)))
+        cds$gene <- vapply(cds$attrs, parse_attr, character(1),
+                           key = "ID", USE.NAMES = FALSE)
+    rownames(cds) <- NULL
+    cds
+}
+
+## Nei and Gojobori (1986) synonymous sites of every sense codon under the
+## standard genetic code: at each codon position, the fraction of the three
+## possible substitutions that keep the amino acid. Substitutions to a stop
+## codon count as nonsynonymous; the nonsynonymous sites are 3 minus this.
+.NG_SYN_SITES <- local({
+    bases <- c("A", "C", "G", "T")
+    sense <- names(.CODON_TABLE)[.CODON_TABLE != "*"]
+    vapply(sense, function(codon) {
+        aa <- .CODON_TABLE[[codon]]
+        s <- 0
+        for (p in seq_len(3L)) {
+            for (b in setdiff(bases, substr(codon, p, p))) {
+                mutant <- codon
+                substr(mutant, p, p) <- b
+                if (.CODON_TABLE[[mutant]] == aa) s <- s + 1 / 3
+            }
+        }
+        s
+    }, numeric(1))
+})
+
+#' @keywords internal
+.revcomp_vec <- function(x) {
+    vapply(strsplit(x, "", fixed = TRUE), function(ch) {
+        paste(rev(chartr("ACGTacgt", "TGCAtgca", ch)), collapse = "")
+    }, character(1))
+}
+
+## Synonymous and nonsynonymous site totals per gene over the complete
+## codons of its CDS features. Codons shared by overlapping CDS features of
+## the same gene (for example ORF1a within ORF1ab) are counted once; stop
+## codons and codons with ambiguous bases are skipped.
+#' @keywords internal
+.cds_site_counts <- function(cds, ref_seqs) {
+    codon_rows <- lapply(seq_len(nrow(cds)), function(i) {
+        if (is.na(cds$gene[i]) || !cds$seqid[i] %in% names(ref_seqs))
+            return(NULL)
+        usable <- cds$end[i] - cds$start[i] + 1L - cds$phase[i]
+        n_codons <- usable %/% 3L
+        if (n_codons < 1L) return(NULL)
+        offsets <- 3L * (seq_len(n_codons) - 1L)
+        low <- if (cds$strand[i] == "-") {
+            cds$end[i] - cds$phase[i] - offsets - 2L
+        } else {
+            cds$start[i] + cds$phase[i] + offsets
+        }
+        data.frame(gene = cds$gene[i], seqid = cds$seqid[i],
+                   strand = cds$strand[i], low = low,
+                   stringsAsFactors = FALSE)
+    })
+    codons <- unique(do.call(rbind, codon_rows))
+    if (is.null(codons) || nrow(codons) == 0L) {
+        return(data.frame(gene = character(), S_sites = numeric(),
+                          N_sites = numeric(), stringsAsFactors = FALSE))
+    }
+    codon_seq <- character(nrow(codons))
+    for (sid in unique(codons$seqid)) {
+        rows <- which(codons$seqid == sid)
+        codon_seq[rows] <- toupper(substring(ref_seqs[[sid]],
+            codons$low[rows], codons$low[rows] + 2L))
+    }
+    minus <- codons$strand == "-"
+    codon_seq[minus] <- .revcomp_vec(codon_seq[minus])
+    syn <- unname(.NG_SYN_SITES[codon_seq])
+    keep <- !is.na(syn)
+    s_by_gene <- tapply(syn[keep], codons$gene[keep], sum)
+    n_by_gene <- tapply(3 - syn[keep], codons$gene[keep], sum)
+    data.frame(gene = names(s_by_gene), S_sites = as.numeric(s_by_gene),
+               N_sites = as.numeric(n_by_gene[names(s_by_gene)]),
+               stringsAsFactors = FALSE)
 }
 
 #' Annotate codon changes from GFF3 CDS + reference FASTA
@@ -135,47 +254,7 @@ annotateCodonChange <- function(whe, gff, refFasta,
         stop("Reference FASTA not found: ", refFasta)
 
     ## ---- Parse GFF3 CDS features ----
-    lines <- readLines(gff)
-    lines <- lines[!startsWith(lines, "#") & nchar(lines) > 0]
-    fields <- strsplit(lines, "\t")
-    fields <- fields[vapply(fields, length, integer(1)) >= 9L]
-    if (length(fields) == 0L)
-        stop("No valid GFF lines found.")
-
-    gff_df <- data.frame(
-        seqid  = vapply(fields, `[`, character(1), 1L),
-        type   = vapply(fields, `[`, character(1), 3L),
-        start  = as.integer(vapply(fields, `[`, character(1), 4L)),
-        end    = as.integer(vapply(fields, `[`, character(1), 5L)),
-        strand = vapply(fields, `[`, character(1), 7L),
-        phase  = vapply(fields, `[`, character(1), 8L),
-        attrs  = vapply(fields, `[`, character(1), 9L),
-        stringsAsFactors = FALSE
-    )
-    cds <- gff_df[gff_df$type == "CDS", , drop = FALSE]
-    if (nrow(cds) == 0L)
-        stop("No CDS features found in GFF file. Available types: ",
-             paste(unique(gff_df$type), collapse = ", "))
-
-    cds$phase <- as.integer(ifelse(cds$phase == ".", "0", cds$phase))
-
-    ## Extract gene name
-    .parse_attr <- function(attr_str, key) {
-        pairs <- strsplit(attr_str, ";")[[1L]]
-        for (p in pairs) {
-            kv <- strsplit(trimws(p), "=")[[1L]]
-            if (length(kv) == 2L && kv[1L] == key) return(kv[2L])
-        }
-        NA_character_
-    }
-    cds$gene <- vapply(cds$attrs, .parse_attr, character(1),
-                       key = nameCol)
-    if (all(is.na(cds$gene)) && nameCol != "Name")
-        cds$gene <- vapply(cds$attrs, .parse_attr, character(1),
-                           key = "Name")
-    if (all(is.na(cds$gene)))
-        cds$gene <- vapply(cds$attrs, .parse_attr, character(1),
-                           key = "ID")
+    cds <- .read_gff_cds(gff, nameCol)
 
     ## ---- Read reference FASTA ----
     ref_seqs <- .read_fasta_simple(refFasta)
@@ -225,21 +304,23 @@ annotateCodonChange <- function(whe, gff, refFasta,
         if (!seq_name %in% names(ref_seqs)) next
         genome_seq <- ref_seqs[[seq_name]]
 
+        ## GFF3 phase is the number of bases to skip from the start of the
+        ## CDS (the 'end' coordinate on the minus strand) to reach the first
+        ## complete codon.
         if (cds_strand == "+") {
-            ## Position within CDS (0-based)
-            pos_in_cds <- (var_pos - cds_start) + cds_phase
+            pos_in_cds <- (var_pos - cds_start) - cds_phase
             codon_idx  <- pos_in_cds %/% 3L
             base_in_codon <- pos_in_cds %% 3L
-            codon_start <- cds_start - cds_phase + codon_idx * 3L
+            codon_start <- cds_start + cds_phase + codon_idx * 3L
         } else {
-            ## Minus strand: count from end
-            pos_in_cds <- (cds_end - var_pos) + cds_phase
+            pos_in_cds <- (cds_end - var_pos) - cds_phase
             codon_idx  <- pos_in_cds %/% 3L
             base_in_codon <- pos_in_cds %% 3L
-            codon_start <- cds_end + cds_phase - codon_idx * 3L - 2L
+            codon_start <- cds_end - cds_phase - codon_idx * 3L - 2L
         }
 
-        ## Bounds check
+        ## Variants in the phase offset are not in a complete codon
+        if (pos_in_cds < 0L) next
         if (codon_start < 1L) next
         codon_end <- codon_start + 2L
         if (codon_end > nchar(genome_seq)) next

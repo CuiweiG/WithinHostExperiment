@@ -6,18 +6,27 @@
 \usage{
 dndsWithinHost(
   whe,
+  gff,
+  refFasta,
   gffFeatureCol = "GFF_FEATURE",
   refAACol = "REF_AA",
   altAACol = "ALT_AA",
-  usePassedOnly = TRUE
+  usePassedOnly = TRUE,
+  nameCol = "gene"
 )
 }
 \arguments{
-\item{whe}{A \code{\link{WithinHostExperiment}} with amino acid
-annotation in \code{mcols(rowRanges)}.}
+\item{whe}{A \code{\link{WithinHostExperiment}} annotated with
+\code{\link{annotateCodonChange}}.}
+
+\item{gff}{Character scalar. Path to the GFF3 file with CDS features
+used for the annotation.}
+
+\item{refFasta}{Character scalar. Path to the reference genome FASTA
+used for the annotation.}
 
 \item{gffFeatureCol}{Character scalar. Column name in
-\code{mcols(rowRanges)} containing the gene/feature annotation
+\code{mcols(rowRanges)} containing the gene annotation
 (default: \code{"GFF_FEATURE"}).}
 
 \item{refAACol}{Character scalar. Column name in
@@ -28,51 +37,81 @@ annotation in \code{mcols(rowRanges)}.}
 \code{mcols(rowRanges)} for the alternative amino acid
 (default: \code{"ALT_AA"}).}
 
-\item{usePassedOnly}{Logical. If TRUE (default), only use variants
-where \code{qcPass == TRUE}.}
+\item{usePassedOnly}{Logical. If \code{TRUE} (default), only use
+variants where \code{qcPass == TRUE}.}
+
+\item{nameCol}{Character scalar. GFF3 attribute holding the gene name
+(default: \code{"gene"}), as in \code{\link{annotateCodonChange}}.}
 }
 \value{
-A \code{DataFrame} with columns:
+A \code{DataFrame} with one row per sample and gene carrying
+  at least one counted iSNV (one row with \code{gene = NA} when a
+  sample has none):
   \describe{
     \item{sample_id}{Sample identifier.}
-    \item{nS}{Number of synonymous iSNVs.}
-    \item{nN}{Number of nonsynonymous iSNVs.}
-    \item{dNdS}{dN/dS ratio (NA if nS == 0).}
+    \item{nS, nN}{Synonymous and nonsynonymous iSNVs in the sample.}
+    \item{S_sites, N_sites}{Synonymous and nonsynonymous sites over
+      all CDS features.}
+    \item{pS, pN}{Proportions \eqn{S_d/S} and \eqn{N_d/N}.}
+    \item{dNdS}{Jukes-Cantor corrected \eqn{d_N/d_S} (\code{NA} when
+      \eqn{d_S} is zero or a proportion reaches 0.75).}
+    \item{gene, gene_nS, gene_nN, gene_S_sites, gene_N_sites,
+      gene_dNdS}{The same quantities for each gene.}
   }
-  If \code{gffFeatureCol} is present, additional columns
-  \code{gene}, \code{gene_nS}, \code{gene_nN}, and
-  \code{gene_dNdS} are included (one row per sample-gene
-  combination).
 }
 \description{
-Classifies each iSNV as synonymous (REF_AA == ALT_AA) or
-nonsynonymous and computes the dN/dS ratio per sample. When
-a \code{GFF_FEATURE} column is present in \code{mcols(rowRanges)},
-per-gene ratios are also returned.
+Estimates the ratio of nonsynonymous to synonymous divergence among
+the iSNVs of each sample with the counting method of Nei and Gojobori
+(1986). The numbers of synonymous (\eqn{S}) and nonsynonymous
+(\eqn{N}) sites are counted over the complete codons of every CDS in
+\code{gff}, using the reference sequence in \code{refFasta} and the
+standard genetic code. With \eqn{S_d} synonymous and \eqn{N_d}
+nonsynonymous iSNVs present in a sample,
+\deqn{p_S = S_d / S, \quad p_N = N_d / N,}
+each proportion is corrected for multiple hits with Jukes and Cantor
+(1969), \eqn{d = -\frac{3}{4}\log(1 - \frac{4}{3}p)}, and
+\eqn{d_N/d_S} is their ratio. Under neutrality the expected ratio is
+1; values below 1 suggest purifying selection and values above 1
+diversifying selection, but within-host ratios computed from few
+iSNVs are highly variable and should be read with their counts.
 }
 \details{
-The dN/dS ratio (omega) is the ratio of nonsynonymous to synonymous
-substitution rates. Under neutrality, dN/dS = 1. Values > 1
-indicate positive (diversifying) selection; values < 1 indicate
-purifying (negative) selection. This implementation follows the
-counting method of Nei & Gojobori (1986).
+Each iSNV present in a sample (non-missing, non-zero frequency, and
+passing QC when \code{usePassedOnly = TRUE}) is counted once,
+irrespective of its frequency. Amino acid classes come from
+\code{\link{annotateCodonChange}}, which should be run with the same
+\code{gff} and \code{refFasta}. Variants outside a CDS, or without an
+amino acid annotation, are not counted. Nonsense changes count as
+nonsynonymous. Codons shared by overlapping CDS features of the same
+gene are counted once.
 }
 \examples{
+ref <- tempfile(fileext = ".fa")
+writeLines(c(">seg1", "ATGCTGAAAGGGTAA"), ref)
+gff <- tempfile(fileext = ".gff3")
+writeLines(c("##gff-version 3",
+    "seg1\t.\tCDS\t1\t15\t.\t+\t0\tgene=geneA"), gff)
 gr <- GenomicRanges::GRanges("seg1",
-    IRanges::IRanges(c(100, 200, 300), width = 1))
-S4Vectors::mcols(gr)$ref <- c("A", "C", "G")
-S4Vectors::mcols(gr)$alt <- c("T", "G", "A")
-S4Vectors::mcols(gr)$REF_AA <- c("M", "L", "A")
-S4Vectors::mcols(gr)$ALT_AA <- c("I", "L", "V")
+    IRanges::IRanges(c(1, 6), width = 1))
+S4Vectors::mcols(gr)$ref <- c("A", "G")
+S4Vectors::mcols(gr)$alt <- c("G", "A")
 whe <- WithinHostExperiment(
-    assays = list(altFreq = matrix(c(0.1, 0.2, 0.3), ncol = 1)),
+    assays = list(altFreq = matrix(c(0.1, 0.2), ncol = 1)),
     rowRanges = gr,
     colData = S4Vectors::DataFrame(sample_id = "S1"))
-dndsWithinHost(whe)
+whe <- annotateCodonChange(whe, gff, ref)
+dndsWithinHost(whe, gff = gff, refFasta = ref)
 }
 \references{
 Nei M, Gojobori T (1986). Simple methods for estimating the
 numbers of synonymous and nonsynonymous nucleotide substitutions.
 \emph{Mol Biol Evol} 3:418-426.
 \doi{10.1093/oxfordjournals.molbev.a040410}
+
+Jukes TH, Cantor CR (1969). Evolution of protein molecules. In Munro
+HN (ed.), \emph{Mammalian Protein Metabolism}, pp. 21-132. Academic
+Press, New York.
+}
+\seealso{
+\code{\link{annotateCodonChange}}
 }

@@ -37,6 +37,12 @@ NULL
 #' @return A \code{\link{WithinHostExperiment}}.
 #'
 #' @details
+#' Records with several alternative alleles are split into one site per
+#' allele. Per-allele values (INFO \code{AF}; FORMAT \code{AO},
+#' \code{AF}, \code{ALT_DP}, \code{ALT_FREQ} and \code{ALT_QUAL}) are
+#' taken for that allele, and per-site values such as total depth and
+#' reference counts are shared.
+#'
 #' When technical replicates are not available, Roder et al. (2023,
 #' \emph{mBio} 14:e01046-23) recommend using a combination of
 #' multiple variant callers with stringent cutoffs to reduce false
@@ -126,6 +132,53 @@ readWithinHost <- function(vcfFiles, colData, caller = "auto",
 # Internal: VCF parsing (unified entry)
 # ============================================================
 
+## Split VCF records with several ALT alleles into one record per allele.
+## Number=A values are taken element-wise; everything else is repeated.
+#' @keywords internal
+.splitMultiallelic <- function(fields) {
+    per_allele_info <- "AF"
+    per_allele_format <- c("AO", "AF", "ALT_DP", "ALT_FREQ", "ALT_QUAL")
+    pick <- function(value, i, n_alt) {
+        parts <- strsplit(value, ",", fixed = TRUE)[[1L]]
+        if (length(parts) == n_alt) parts[i] else value
+    }
+    expanded <- lapply(fields, function(f) {
+        if (length(f) < 5L) return(list(f))
+        alts <- strsplit(f[5L], ",", fixed = TRUE)[[1L]]
+        n_alt <- length(alts)
+        if (n_alt <= 1L) return(list(f))
+        lapply(seq_len(n_alt), function(i) {
+            g <- f
+            g[5L] <- alts[i]
+            if (length(g) >= 8L && !identical(g[8L], ".")) {
+                entries <- strsplit(g[8L], ";", fixed = TRUE)[[1L]]
+                entries <- vapply(entries, function(entry) {
+                    kv <- strsplit(entry, "=", fixed = TRUE)[[1L]]
+                    if (length(kv) == 2L && kv[1L] %in% per_allele_info) {
+                        paste0(kv[1L], "=", pick(kv[2L], i, n_alt))
+                    } else {
+                        entry
+                    }
+                }, character(1), USE.NAMES = FALSE)
+                g[8L] <- paste(entries, collapse = ";")
+            }
+            if (length(g) >= 10L) {
+                format_names <- strsplit(g[9L], ":", fixed = TRUE)[[1L]]
+                values <- strsplit(g[10L], ":", fixed = TRUE)[[1L]]
+                for (k in seq_along(values)) {
+                    if (k <= length(format_names) &&
+                        format_names[k] %in% per_allele_format) {
+                        values[k] <- pick(values[k], i, n_alt)
+                    }
+                }
+                g[10L] <- paste(values, collapse = ":")
+            }
+            g
+        })
+    })
+    unlist(expanded, recursive = FALSE)
+}
+
 #' @keywords internal
 .parseVcf <- function(vcfFile, caller) {
     ## Read data lines (skip ## and # header)
@@ -141,7 +194,7 @@ readWithinHost <- function(vcfFiles, colData, caller = "auto",
     }
 
     ## Parse tab-separated fields
-    fields <- strsplit(data_lines, "\t")
+    fields <- .splitMultiallelic(strsplit(data_lines, "\t"))
     n_cols <- length(fields[[1L]])
     ## Validate consistent column count
     col_counts <- vapply(fields, length, integer(1))

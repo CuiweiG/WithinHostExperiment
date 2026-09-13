@@ -385,26 +385,43 @@ setMethod("[", "WithinHostExperiment",
 
 #' Combine WithinHostExperiment objects by rows or columns
 #'
+#' Methods for the \code{\link[S4Vectors]{combineRows}} and
+#' \code{\link[S4Vectors]{combineCols}} generics.
 #' \code{combineRows} combines objects vertically (adding variant
 #' sites); all objects must have the same samples (columns).
 #' \code{combineCols} combines objects horizontally (adding
 #' samples); all objects must have the same variant sites (rows).
 #' QC logs and filters from all objects are merged.
 #'
-#' @param ... \code{\link{WithinHostExperiment}} objects to combine.
+#' @param x A \code{\link{WithinHostExperiment}}.
+#' @param ... Further \code{\link{WithinHostExperiment}} objects to
+#'   combine.
+#' @param use.names Accepted for compatibility with the generic. Sites
+#'   are combined in the order given, not matched by name.
 #'
 #' @return A \code{\link{WithinHostExperiment}}.
 #'
-#' @export
-#' @rdname WHE-combine
+#' @name WHE-combine
+#' @aliases combineRows,WithinHostExperiment-method
+#'   combineCols,WithinHostExperiment-method
+#' @importFrom S4Vectors combineRows combineCols
 #' @examples
 #' data(example_whe)
 #' whe1 <- example_whe[1:10, ]
 #' whe2 <- example_whe[11:nrow(example_whe), ]
 #' merged <- combineRows(whe1, whe2)
 #' nrow(merged) == nrow(example_whe)
-combineRows <- function(...) {
-    args <- list(...)
+#'
+#' whe_d <- example_whe[, 1]
+#' whe_r <- example_whe[, 2]
+#' merged <- combineCols(whe_d, whe_r)
+#' ncol(merged)
+NULL
+
+#' @rdname WHE-combine
+#' @export
+setMethod("combineRows", "WithinHostExperiment", function(x, ...) {
+    args <- c(list(x), list(...))
     if (!all(vapply(args, is, logical(1), "WithinHostExperiment")))
         stop("All arguments must be WithinHostExperiment objects.")
     ## Merge qcLogs and qcFilters
@@ -421,7 +438,7 @@ combineRows <- function(...) {
     ## Concatenate assay matrices by rows
     anames <- assayNames(args[[1L]])
     merged_assays <- lapply(anames, function(nm) {
-        mats <- lapply(args, function(x) assay(x, nm))
+        mats <- lapply(args, function(obj) assay(obj, nm))
         do.call(base::rbind, mats)
     })
     names(merged_assays) <- anames
@@ -432,18 +449,13 @@ combineRows <- function(...) {
     S4Vectors::metadata(se) <- S4Vectors::metadata(args[[1L]])
     new("WithinHostExperiment", se,
         qcLog = all_logs, qcFilters = all_filters)
-}
+})
 
-#' @export
 #' @rdname WHE-combine
-#' @examples
-#' data(example_whe)
-#' whe_d <- example_whe[, 1]
-#' whe_r <- example_whe[, 2]
-#' merged <- combineCols(whe_d, whe_r)
-#' ncol(merged)
-combineCols <- function(...) {
-    args <- list(...)
+#' @export
+setMethod("combineCols", "WithinHostExperiment",
+    function(x, ..., use.names = TRUE) {
+    args <- c(list(x), list(...))
     if (!all(vapply(args, is, logical(1), "WithinHostExperiment")))
         stop("All arguments must be WithinHostExperiment objects.")
     all_logs <- .mergeQcLogs(args)
@@ -462,15 +474,15 @@ combineCols <- function(...) {
     ## Concatenate colData
     all_cd <- do.call(
         function(...) base::rbind(...),
-        lapply(args, function(x) as.data.frame(colData(x))))
+        lapply(args, function(obj) as.data.frame(colData(obj))))
     all_cd <- DataFrame(all_cd)
     rownames(all_cd) <- NULL
 
     ## Concatenate assay matrices by columns
     anames <- assayNames(args[[1L]])
     merged_assays <- lapply(anames, function(nm) {
-        mats <- lapply(args, function(x) {
-            m <- assay(x, nm)
+        mats <- lapply(args, function(obj) {
+            m <- assay(obj, nm)
             rownames(m) <- NULL
             m
         })
@@ -483,7 +495,7 @@ combineCols <- function(...) {
     S4Vectors::metadata(se) <- S4Vectors::metadata(args[[1L]])
     new("WithinHostExperiment", se,
         qcLog = all_logs, qcFilters = all_filters)
-}
+})
 
 #' @keywords internal
 #' @noRd

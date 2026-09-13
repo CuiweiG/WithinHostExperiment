@@ -76,3 +76,10 @@ test_that("tajimaD validates inputs", {
     expect_error(tajimaD(S = 5, n = 100, pi_hat = 0.001,
         genomeLength = 0), "positive")
 })
+
+test_that("fusFs returns NA with a warning when S + 1 exceeds n", {
+    expect_warning(res <- fusFs(S = 100, n = 100, theta_pi = 5),
+                   "undefined")
+    expect_true(is.na(res))
+    expect_true(is.finite(fusFs(S = 10, n = 100, theta_pi = 5)))
+})

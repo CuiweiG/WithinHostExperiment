@@ -156,7 +156,9 @@ tajimaD <- function(S, n, pi_hat, genomeLength) {
 #' @param theta_pi Numeric scalar. Theta estimated from
 #'   nucleotide diversity (\eqn{\hat{\pi} \times L}).
 #'
-#' @return Numeric scalar. Fu's Fs.
+#' @return Numeric scalar. Fu's Fs, or \code{NA} with a warning when
+#'   \eqn{S + 1 > n}: the statistic uses \eqn{S + 1} as the number of
+#'   haplotypes, which cannot exceed the number of sequences sampled.
 #'
 #' @references
 #' Fu YX (1997). Statistical tests of neutrality of mutations
@@ -179,6 +181,13 @@ fusFs <- function(S, n, theta_pi) {
 
     n <- as.integer(round(n))
     k_obs <- S + 1L
+    if (k_obs > n) {
+        warning("Fu's Fs is undefined when the number of segregating ",
+                "sites (S = ", S, ") is not below the sample size (n = ",
+                n, "): S + 1 haplotypes cannot occur among n sequences. ",
+                "Returning NA.", call. = FALSE)
+        return(NA_real_)
+    }
 
     ## Compute P(K >= k_obs | theta) using Ewens sampling formula.
     ## Use recursive computation of Stirling numbers of the first
