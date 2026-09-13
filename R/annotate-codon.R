@@ -45,9 +45,10 @@ NULL
         } else {
             length(lines)
         }
-        seq_lines <- lines[start:end]
-        seq_lines <- seq_lines[!startsWith(seq_lines, ">")]
-        seqs[[name]] <- paste(seq_lines, collapse = "")
+        seq_lines <- if (start <= end) lines[start:end] else character()
+        ## Whitespace inside a record would shift every later coordinate
+        seqs[[name]] <- gsub("[[:space:]]", "",
+                             paste(seq_lines, collapse = ""))
     }
     seqs
 }

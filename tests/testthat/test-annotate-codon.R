@@ -84,3 +84,11 @@ test_that("annotateCodonChange honours the GFF3 phase", {
     expect_equal(mc$AA_CLASS[2], "Synonymous")
     expect_true(is.na(mc$REF_CODON[3]))
 })
+
+test_that("FASTA reader ignores whitespace and empty final records", {
+    fa <- tempfile(fileext = ".fa")
+    writeLines(c(">seg1 description", "ATG CTG ", "AAA\t", "", ">empty"), fa)
+    seqs <- WithinHostExperiment:::.read_fasta_simple(fa)
+    expect_identical(seqs[["seg1"]], "ATGCTGAAA")
+    expect_identical(seqs[["empty"]], "")
+})
