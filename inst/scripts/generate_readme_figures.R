@@ -167,6 +167,7 @@ med_pct_drop <- median(div$pct_drop, na.rm = TRUE)
 ## ================================================================
 record("fig1", "a", "concordant calls (|freq diff| <= 0.02)", n_conc)
 record("fig1", "a", "discordant calls", n_disc)
+record("fig1", "a", "percentage of calls discordant", 100 * n_disc / n_isnv)
 record("fig1", "a", "replicate R2", r2)
 record("fig1", "b", "median pi naive (x1e-4)", med_naive)
 record("fig1", "b", "median pi QC (x1e-4)", med_qc)
@@ -250,6 +251,7 @@ save_figure(p2, "fig2_frequency_spectrum", 4.2, 3.2)
 ## ================================================================
 ## Figure 3: depth, annotation, transmission
 ## ================================================================
+record("fig3", "a", "samples with depth", length(depth_by_sample))
 record("fig3", "a", "median mean read depth", median_depth)
 p3a <- ggplot(data.frame(d = as.numeric(depth_by_sample)), aes(x = d)) +
     geom_histogram(fill = pal$orange, colour = "white", linewidth = 0.2, binwidth = 300, alpha = 0.90, boundary = 0) +
@@ -303,19 +305,23 @@ loll <- data.frame(pos = donor_calls$POS,
                    stringsAsFactors = FALSE)
 loll$label <- factor(sprintf("%s (%s)", loll$pos, loll$gene), levels = rev(sprintf("%s (%s)", loll$pos, loll$gene)))
 n_lost <- sum(!loll$detected)
-record("fig3", "c", paste("donor iSNVs in pair", example_pair), nrow(loll))
-record("fig3", "c", paste("donor iSNVs not detected in recipient, pair", example_pair), n_lost)
+record("fig3", "c", "example pair", example_pair)
+record("fig3", "c", "donor iSNVs in the example pair", nrow(loll))
+record("fig3", "c", "donor iSNVs not detected in the recipient", n_lost)
 p3c <- ggplot(loll, aes(y = label, x = donor_freq, fill = detected)) +
     geom_col(width = 0.6, alpha = 0.90) +
     geom_text(aes(label = sprintf("%.1f%%", donor_freq)), hjust = -0.15, size = 2.8) +
     scale_fill_manual(name = NULL, values = c("TRUE" = pal$green, "FALSE" = pal$vermillion),
-                      labels = c("TRUE" = "Detected", "FALSE" = "Not detected")) +
+                      labels = c("TRUE" = "iSNV in recipient", "FALSE" = "No iSNV in recipient")) +
     scale_x_continuous("Donor frequency (%)", expand = expansion(mult = c(0, 0.30))) +
     annotate("text", x = max(loll$donor_freq) * 1.2, y = 0.6, hjust = 1, vjust = 0, size = 3.0, lineheight = 1.2,
-             label = sprintf("Pair %s\n%d/%d not detected", example_pair, n_lost, nrow(loll))) +
+             label = sprintf("Pair %s\n%d/%d without a recipient iSNV", example_pair, n_lost, nrow(loll))) +
     labs(y = NULL, tag = "c") + theme_pub(10) + inside(0.98, 0.02) +
     theme(axis.text.y = element_text(size = 8))
 
+## Recipient calls come from the iSNV table (frequencies 2-98%), so a donor
+## variant that became fixed in the recipient is also counted as not shared.
+## These panels describe detection, not bottleneck size.
 sharing <- do.call(rbind, lapply(seq_len(nrow(pair_df)), function(i) {
     dv <- concordant[concordant$sample == pair_df$sample_donor[i], ]
     if (nrow(dv) == 0L) return(NULL)
@@ -328,12 +334,13 @@ n_zero <- sum(sharing$shared == 0)
 record("fig3", "d", "pairs with at least one concordant donor iSNV", nrow(sharing))
 record("fig3", "d", "pairs sharing no donor iSNV", n_zero)
 record("fig3", "d", "percentage sharing none", 100 * n_zero / nrow(sharing))
-share_long <- rbind(data.frame(rank = sharing$rank, count = sharing$shared, type = "Shared"),
-                    data.frame(rank = sharing$rank, count = sharing$lost, type = "Not detected"))
-share_long$type <- factor(share_long$type, levels = c("Not detected", "Shared"))
+share_long <- rbind(data.frame(rank = sharing$rank, count = sharing$shared, type = "iSNV in recipient"),
+                    data.frame(rank = sharing$rank, count = sharing$lost, type = "No iSNV in recipient"))
+share_long$type <- factor(share_long$type, levels = c("No iSNV in recipient", "iSNV in recipient"))
 p3d <- ggplot(share_long, aes(x = rank, y = count, fill = type)) +
     geom_col(width = 0.7, alpha = 0.90) +
-    scale_fill_manual(name = NULL, values = c("Not detected" = pal$vermillion, Shared = pal$green)) +
+    scale_fill_manual(name = NULL, values = c("No iSNV in recipient" = pal$vermillion,
+                                              "iSNV in recipient" = pal$green)) +
     annotate("text", x = nrow(sharing) * 0.95, y = Inf, hjust = 1, vjust = 1.5, size = 3.0, lineheight = 1.2,
              label = sprintf("%d/%d (%.0f%%)\nshare none", n_zero, nrow(sharing), 100 * n_zero / nrow(sharing))) +
     scale_x_continuous("Transmission pair", expand = expansion(mult = c(0.01, 0.01))) +
@@ -395,6 +402,7 @@ p4b <- ggplot(traj[traj$variant_key %in% top10, ],
     labs(colour = NULL, tag = "b") + theme_pub(10) + theme(legend.position = "none")
 
 key_tp <- unique(c(days[1L], peak, days[n_tp]))
+record("fig4", "c", "days shown", paste(key_tp, collapse = ", "))
 sfs_tp <- lapply(key_tp, function(d) {
     buildSFS(whe_f, sampleIdx = match(d, days), fold = TRUE, genomeLength = GL, nBins = 8)
 })
@@ -417,6 +425,7 @@ n_persistent <- sum(temporal_class == "persistent", na.rm = TRUE)
 n_transient <- sum(temporal_class == "transient", na.rm = TRUE)
 record("fig4", "d", "persistent sites (>= 2 timepoints)", n_persistent)
 record("fig4", "d", "transient sites (1 timepoint)", n_transient)
+record("fig4", "d", "variant sites classified", n_persistent + n_transient)
 record("fig4", "d", "percentage transient", 100 * n_transient / (n_persistent + n_transient))
 tc_df <- data.frame(class = factor(c("Persistent\n(≥ 2 timepoints)", "Transient\n(1 timepoint)"),
                                    levels = c("Persistent\n(≥ 2 timepoints)", "Transient\n(1 timepoint)")),
