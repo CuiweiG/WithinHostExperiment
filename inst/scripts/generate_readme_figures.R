@@ -170,7 +170,11 @@ div$pct_drop <- ifelse(div$pi_naive > 0,
 n_pi_lowered <- sum(div$pi_qc < div$pi_naive)
 med_naive <- median(div$pi_naive)
 med_qc <- median(div$pi_qc)
-med_pct_drop <- median(div$pct_drop, na.rm = TRUE)
+## QC removes no call in most samples, so the median fall over all samples is
+## zero and says nothing; the median among the samples it did lower is the
+## quantity with content, and is reported with the count it is taken over.
+med_pct_drop <- median(div$pct_drop[div$pi_qc < div$pi_naive], na.rm = TRUE)
+n_qc_emptied <- sum(div$pi_qc == 0 & div$pi_naive > 0)
 
 ## ================================================================
 ## Figure 1: replicate QC
@@ -179,10 +183,18 @@ record("fig1", "a", "concordant calls (|freq diff| <= 0.02)", n_conc)
 record("fig1", "a", "discordant calls", n_disc)
 record("fig1", "a", "percentage of calls discordant", 100 * n_disc / n_isnv)
 record("fig1", "a", "replicate R2", r2)
+## R2 over the full 0-100% range is carried by the spread between calls; the
+## agreement that matters for QC is the one among the low-frequency calls.
+record("fig1", "a", "replicate R2 below 10% mean frequency",
+       cor(vars$ALT_FREQ_1[vars$mean_freq < 0.10],
+           vars$ALT_FREQ_2[vars$mean_freq < 0.10])^2)
+record("fig1", "a", "median absolute replicate difference (percentage points)",
+       100 * median(vars$freq_diff))
 record("fig1", "b", "median pi naive (x1e-4)", med_naive)
 record("fig1", "b", "median pi QC (x1e-4)", med_qc)
 record("fig1", "b", "samples in which QC lowered pi", n_pi_lowered)
-record("fig1", "b", "median per-sample fall in pi (%)", med_pct_drop)
+record("fig1", "b", "median fall in pi among the samples QC lowered (%)", med_pct_drop)
+record("fig1", "b", "samples in which QC removed every call", n_qc_emptied)
 record("fig1", "b", "samples", n_samples)
 
 rep_df <- data.frame(r1 = vars$ALT_FREQ_1 * 100, r2 = vars$ALT_FREQ_2 * 100,
@@ -212,8 +224,8 @@ p1b <- ggplot(pi_long, aes(x = x, y = pi)) +
                position = position_jitter(width = 0.06, height = 0, seed = 42)) +
     annotate("point", x = c(1, 2), y = c(med_naive, med_qc), shape = 18, size = 5.5, colour = pal$black) +
     annotate("text", x = 2.45, y = max(div$pi_naive) * 0.95, hjust = 1, vjust = 1, size = 3.0,
-             label = sprintf("Median fall %.0f%%\n%d of %d samples lower",
-                             med_pct_drop, n_pi_lowered, n_samples)) +
+             label = sprintf("%d of %d samples lower\nmedian fall among them %.0f%%",
+                             n_pi_lowered, n_samples, med_pct_drop)) +
     scale_colour_manual(values = c(Naive = pal$orange, QC = pal$green), guide = "none") +
     scale_x_continuous(NULL, breaks = c(1, 2), labels = c("Naive", "QC"), limits = c(0.55, 2.55)) +
     scale_y_continuous(expression(pi ~ "(" * 10^{-4} * ")"), expand = expansion(mult = c(0.03, 0.06))) +
@@ -244,6 +256,9 @@ record("fig2", "", "distinct variants", n_sites)
 vars$status <- factor(ifelse(vars$concordant, "Concordant", "Discordant"),
                       levels = c("Concordant", "Discordant"))
 record("fig2", "", "discordant calls below 10% mean frequency", sum(!vars$concordant & vars$mean_freq < 0.10))
+record("fig2", "", "concordant calls below 10% mean frequency", sum(vars$concordant & vars$mean_freq < 0.10))
+record("fig2", "", "percentage of discordant calls below 10%", 100 * mean(vars$mean_freq[!vars$concordant] < 0.10))
+record("fig2", "", "percentage of concordant calls below 10%", 100 * mean(vars$mean_freq[vars$concordant] < 0.10))
 p2 <- ggplot(vars, aes(x = mean_freq * 100, fill = status)) +
     geom_histogram(binwidth = 2.5, colour = "white", linewidth = 0.2, alpha = 0.90, boundary = 0) +
     geom_vline(xintercept = 3, linetype = "dashed", colour = pal$black, linewidth = 0.55) +
@@ -344,6 +359,13 @@ n_zero <- sum(sharing$shared == 0)
 record("fig3", "d", "pairs with at least one concordant donor iSNV", nrow(sharing))
 record("fig3", "d", "pairs sharing no donor iSNV", n_zero)
 record("fig3", "d", "percentage sharing none", 100 * n_zero / nrow(sharing))
+## Half of the recipients carry no iSNV call at all, so for those pairs the
+## panel records an absence of data as an absence of sharing.
+record("fig3", "d", "pairs whose recipient has no iSNV call at all",
+       sum(vapply(sharing$pair, function(p) {
+           r <- pair_df$sample_recipient[match(p, pair_df$pair_id)]
+           sum(vars$sample == r) == 0L
+       }, logical(1))))
 share_long <- rbind(data.frame(rank = sharing$rank, count = sharing$shared, type = "iSNV in recipient"),
                     data.frame(rank = sharing$rank, count = sharing$lost, type = "No iSNV in recipient"))
 share_long$type <- factor(share_long$type, levels = c("No iSNV in recipient", "iSNV in recipient"))
@@ -375,6 +397,15 @@ whe_f <- readWithinHostTable(
     file.path(inputs[["farjo"]], paste0(farjo_meta$sample, ".ivar.tsv")),
     format = "ivar",
     colData = DataFrame(sample_id = farjo_meta$sample, host_id = "p", timepoint = days))
+## iVar tables list insertions and deletions as "+A" or "-TG" alleles, and the
+## reader imports them as they stand. Every quantity here is about iSNVs, so
+## the indel rows are dropped before QC rather than counted as substitutions.
+alt_f <- as.character(mcols(rowRanges(whe_f))$alt)
+ref_f <- as.character(mcols(rowRanges(whe_f))$ref)
+is_snv <- !grepl("^[+-]", alt_f) & nchar(alt_f) == 1L & nchar(ref_f) == 1L
+record("fig4", "", "indel rows dropped before QC", sum(!is_snv))
+record("fig4", "", "substitution rows kept", sum(is_snv))
+whe_f <- whe_f[is_snv, ]
 whe_f <- flagISNV(whe_f, ISNVFilter(minDepth = 1000L, minFreq = 0.03, maxFreq = 0.97))
 div_f <- as.data.frame(calcDiversity(whe_f, genomeLength = GL, indices = c("pi", "richness")))
 div_f$timepoint <- days
@@ -469,6 +500,12 @@ taj_qc <- taj[taj$S_qc > 0 & is.finite(taj$D_qc), ]
 record("fig5", "a", "samples with >= 1 concordant iSNV", nrow(taj_qc))
 record("fig5", "a", "median Tajima D (QC, n capped at 100)", median(taj_qc$D_qc))
 record("fig5", "a", "percentage of samples with D < 0", 100 * mean(taj_qc$D_qc < 0))
+## With one segregating site D is a monotone function of that call's frequency,
+## so the summary describes single calls in most of these samples.
+record("fig5", "a", "samples resting on a single concordant call", sum(taj_qc$S_qc == 1))
+record("fig5", "a", "percentage resting on a single concordant call",
+       100 * mean(taj_qc$S_qc == 1))
+record("fig5", "a", "samples with at least three concordant calls", sum(taj_qc$S_qc >= 3))
 p5a <- ggplot(taj_qc, aes(x = D_qc)) +
     geom_histogram(bins = 15, fill = pal$blue, colour = "white", linewidth = 0.2, alpha = 0.90) +
     geom_vline(xintercept = 0, linetype = "dashed", colour = pal$grey, linewidth = 0.5) +
@@ -491,17 +528,22 @@ for (i in seq_len(nrow(gene_dnds))) {
     record("fig5", "b", paste0("dN/dS ", gene_dnds$gene[i], " (", gene_dnds$gene_nN[i], "N/", gene_dnds$gene_nS[i], "S)"),
            gene_dnds$gene_dNdS[i])
 }
-gene_dnds <- gene_dnds[gene_dnds$gene_nS + gene_dnds$gene_nN >= 2L, ]
+## A gene with no synonymous call has no ratio at all; drawing it at zero would
+## put it where the strongest purifying selection sits, so such genes are left
+## out of the panel and counted instead.
+n_genes_any <- nrow(gene_dnds)
+gene_dnds <- gene_dnds[gene_dnds$gene_nS + gene_dnds$gene_nN >= 2L &
+                           !is.na(gene_dnds$gene_dNdS), ]
+record("fig5", "b", "genes shown", nrow(gene_dnds))
+record("fig5", "b", "genes omitted (one call or no synonymous call)",
+       n_genes_any - nrow(gene_dnds))
 gene_dnds <- gene_dnds[order(gene_dnds$gene_nS + gene_dnds$gene_nN, decreasing = TRUE), ]
 gene_dnds$gene <- factor(gene_dnds$gene, levels = rev(gene_dnds$gene))
-gene_dnds$has_syn <- gene_dnds$gene_nS > 0
-gene_dnds$bar <- ifelse(is.na(gene_dnds$gene_dNdS), 0, gene_dnds$gene_dNdS)
-p5b <- ggplot(gene_dnds, aes(y = gene, x = bar, fill = has_syn)) +
-    geom_col(width = 0.6, alpha = 0.90) +
+p5b <- ggplot(gene_dnds, aes(y = gene, x = gene_dNdS)) +
+    geom_col(width = 0.6, alpha = 0.90, fill = pal$vermillion) +
     geom_vline(xintercept = 1, linetype = "dashed", colour = pal$grey, linewidth = 0.5) +
-    geom_text(aes(label = ifelse(has_syn, sprintf("%.2f (%dN/%dS)", gene_dNdS, gene_nN, gene_nS),
-                                 sprintf("%dN, 0S", gene_nN))), hjust = -0.05, size = 2.7) +
-    scale_fill_manual(values = c("TRUE" = pal$vermillion, "FALSE" = pal$grey), guide = "none") +
+    geom_text(aes(label = sprintf("%.2f (%dN/%dS)", gene_dNdS, gene_nN, gene_nS)),
+              hjust = -0.05, size = 2.7) +
     scale_x_continuous("dN/dS (Nei-Gojobori, pooled)", expand = expansion(mult = c(0, 0.45))) +
     labs(y = NULL, tag = "b") + theme_pub(10) + theme(axis.text.y = element_text(size = 9))
 
@@ -530,6 +572,11 @@ pooled_whe <- function(df, id) {
 sfs_naive <- buildSFS(pooled_whe(vars, "naive"), fold = TRUE, genomeLength = GL, nBins = 10)
 sfs_qc <- buildSFS(pooled_whe(concordant, "qc"), fold = TRUE, genomeLength = GL, nBins = 10)
 sfs_corrected <- correctSFSBias(sfs_qc, method = "binomial")
+## At this depth every bin sits far above the detection limit, so the
+## correction returns the counts it was given; the panel says so rather than
+## showing two series the reader cannot tell apart.
+record("fig5", "d", "bins the bias correction changed",
+       sum(as.numeric(sfs_qc@counts) != as.numeric(sfs_corrected@counts)))
 sfs_frame <- function(s, label) {
     br <- s@breaks
     data.frame(freq = (br[-length(br)] + br[-1L]) / 2 * 100, count = s@counts, label = label)
@@ -566,6 +613,10 @@ taj_pair <- taj[is.finite(taj$D_naive) & is.finite(taj$D_qc), ]
 d_diff <- taj_pair$D_qc - taj_pair$D_naive
 d_diff_ci <- median_ci(d_diff)
 record("fig6", "a", "samples with finite D before and after QC", nrow(taj_pair))
+## D has no value after QC exactly where QC removed every call, so the samples
+## it changed most are the ones the paired comparison cannot include.
+record("fig6", "a", "samples excluded because QC left no call",
+       sum(is.finite(taj$D_naive) & !is.finite(taj$D_qc)))
 record("fig6", "a", "samples whose D changed under QC", sum(d_diff != 0))
 record("fig6", "a", "median Tajima D naive", median(taj_pair$D_naive))
 record("fig6", "a", "median Tajima D QC", median(taj_pair$D_qc))

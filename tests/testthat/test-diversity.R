@@ -20,6 +20,14 @@ test_that("piISNV with finite-sample correction", {
     expect_true(abs(deep - raw) < abs(corrected - raw))
 })
 
+test_that("piISNV rejects a mean depth that rounds to one", {
+    ## A depth above 1 that rounds to 1 used to give n/(n-1) = Inf
+    expect_error(piISNV(0.5, 1000, meanDepth = 1.2), "rounds to 1")
+    expect_error(piISNV(0.5, 1000, meanDepth = 1.4), "rounds to 1")
+    expect_true(is.finite(piISNV(0.5, 1000, meanDepth = 1.5)))
+    expect_error(piISNV(0.5, 1000, meanDepth = 1), "greater than 1|> 1")
+})
+
 test_that("piISNV rejects invalid genomeLength", {
     expect_error(piISNV(0.5, -1))
     expect_error(piISNV(0.5, 0))

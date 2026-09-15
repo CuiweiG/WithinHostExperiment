@@ -50,9 +50,12 @@ shannonISNV <- function(freq) {
 #' \deqn{\pi = \frac{n}{n-1} \cdot \frac{2}{L} \sum_i p_i(1 - p_i)}
 #' where \eqn{p_i} is the alternative allele frequency at site
 #' \eqn{i}, \eqn{L} is the genome length, and \eqn{n} is the
-#' sample size (approximated by mean read depth for deep
-#' sequencing data). The \eqn{n/(n-1)} correction removes
-#' finite-sample bias (Nei 1987, Eq. 10.5). When
+#' number of reads sampled at a site, for which mean read depth
+#' stands in. The \eqn{n/(n-1)} correction removes the
+#' finite-sample bias of estimating a frequency from \eqn{n}
+#' draws (Nei 1987, Eq. 10.5). This is a different use of
+#' "sample size" from the one in \code{\link{tajimaD}}, where
+#' reads must not stand in for independent lineages. When
 #' \code{meanDepth} is not provided, the uncorrected estimator
 #' is returned (equivalent to infinite sample size).
 #'
@@ -92,6 +95,10 @@ piISNV <- function(freq, genomeLength, meanDepth = NULL) {
             meanDepth <= 1)
             stop("'meanDepth' must be a single number > 1.")
         n <- as.integer(round(meanDepth))
+        if (n < 2L)
+            stop("'meanDepth' of ", meanDepth, " rounds to ", n,
+                 "; the n/(n-1) correction needs a depth that rounds to ",
+                 "2 or more.")
         raw_pi <- raw_pi * n / (n - 1L)
     }
     raw_pi
