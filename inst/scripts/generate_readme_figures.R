@@ -9,6 +9,9 @@
 ##     AvgCoverage.all, Transmission_pairs.csv
 ##     (github.com/lauringlab/SARS-CoV-2_VOC_transmission_bottleneck)
 ##   Farjo et al. (2024) J. Virol. 98:e01618-23 -- farjo_longitudinal/
+##     (saliva samples of participant 432870; samples_432870.csv is written
+##     by prepare_farjo_metadata.R from
+##     github.com/BROOKELAB/SARS-CoV-2-within-host-evolution)
 ##   NCBI RefSeq NC_045512.2 -- sars2_NC045512.gff3, sars2_NC045512.fasta
 ##
 ## Run from the package root of a clone:
@@ -47,7 +50,8 @@ inputs <- c(
     pairs = file.path(DATA, "Transmission_pairs.csv"),
     gff = file.path(DATA, "sars2_NC045512.gff3"),
     fasta = file.path(DATA, "sars2_NC045512.fasta"),
-    farjo = file.path(DATA, "farjo_longitudinal")
+    farjo = file.path(DATA, "farjo_longitudinal"),
+    farjo_meta = file.path(DATA, "farjo_longitudinal", "samples_432870.csv")
 )
 missing_inputs <- inputs[!file.exists(inputs)]
 if (length(missing_inputs)) {
@@ -147,10 +151,16 @@ div <- do.call(rbind, lapply(samples, function(s) {
                pi_qc = pi_sample(concordant$ALT_FREQ_1[concordant$sample == s], s) * 1e4,
                stringsAsFactors = FALSE)
 }))
-wt_pi <- wilcox.test(div$pi_naive, div$pi_qc, paired = TRUE,
-                     alternative = "greater", exact = FALSE)
+## QC keeps a subset of each sample's calls and every call adds a
+## non-negative term to pi, so pi cannot rise under QC; a test of that
+## direction carries no information. Report how far pi falls instead.
+div$pct_drop <- ifelse(div$pi_naive > 0,
+                       100 * (div$pi_naive - div$pi_qc) / div$pi_naive,
+                       NA_real_)
+n_pi_lowered <- sum(div$pi_qc < div$pi_naive)
 med_naive <- median(div$pi_naive)
 med_qc <- median(div$pi_qc)
+med_pct_drop <- median(div$pct_drop, na.rm = TRUE)
 
 ## ================================================================
 ## Figure 1: replicate QC
@@ -160,7 +170,8 @@ record("fig1", "a", "discordant calls", n_disc)
 record("fig1", "a", "replicate R2", r2)
 record("fig1", "b", "median pi naive (x1e-4)", med_naive)
 record("fig1", "b", "median pi QC (x1e-4)", med_qc)
-record("fig1", "b", "paired one-sided Wilcoxon p (naive > QC)", wt_pi$p.value)
+record("fig1", "b", "samples in which QC lowered pi", n_pi_lowered)
+record("fig1", "b", "median per-sample fall in pi (%)", med_pct_drop)
 record("fig1", "b", "samples", n_samples)
 
 rep_df <- data.frame(r1 = vars$ALT_FREQ_1 * 100, r2 = vars$ALT_FREQ_2 * 100,
@@ -190,7 +201,8 @@ p1b <- ggplot(pi_long, aes(x = x, y = pi)) +
                position = position_jitter(width = 0.06, height = 0, seed = 42)) +
     annotate("point", x = c(1, 2), y = c(med_naive, med_qc), shape = 18, size = 5.5, colour = pal$black) +
     annotate("text", x = 2.45, y = max(div$pi_naive) * 0.95, hjust = 1, vjust = 1, size = 3.0,
-             label = sprintf("Wilcoxon p = %.1e\nn = %d", wt_pi$p.value, n_samples)) +
+             label = sprintf("Median fall %.0f%%\n%d of %d samples lower",
+                             med_pct_drop, n_pi_lowered, n_samples)) +
     scale_colour_manual(values = c(Naive = pal$orange, QC = pal$green), guide = "none") +
     scale_x_continuous(NULL, breaks = c(1, 2), labels = c("Naive", "QC"), limits = c(0.55, 2.55)) +
     scale_y_continuous(expression(pi ~ "(" * 10^{-4} * ")"), expand = expansion(mult = c(0.03, 0.06))) +
@@ -332,19 +344,32 @@ save_figure((p3a + p3b) / (p3c + p3d), "fig3_qc_overview", 7.0, 5.8)
 ## ================================================================
 ## Figure 4: longitudinal sampling (Farjo et al. 2024)
 ## ================================================================
-n_tp <- length(farjo_files)
-whe_f <- readWithinHostTable(farjo_files, format = "ivar",
-    colData = DataFrame(sample_id = paste0("t", seq_len(n_tp)), host_id = "p", timepoint = seq_len(n_tp)))
-whe_f <- flagISNV(whe_f, ISNVFilter(minDepth = 100L, minFreq = 0.03, maxFreq = 0.97))
+## The nine files are daily saliva samples. Farjo et al. analysed only the
+## samples with mean genome coverage of at least 1000x (six of the nine) and
+## called iSNVs at sites with at least 1000 reads; both rules are applied
+## here, and samples are placed by day of infection rather than file order.
+farjo_all <- read.csv(inputs[["farjo_meta"]], colClasses = c(sample = "character"),
+                      stringsAsFactors = FALSE)
+farjo_meta <- farjo_all[farjo_all$analysed_by_study, ]
+farjo_meta <- farjo_meta[order(farjo_meta$day_of_infection), ]
+days <- farjo_meta$day_of_infection
+n_tp <- length(days)
+whe_f <- readWithinHostTable(
+    file.path(inputs[["farjo"]], paste0(farjo_meta$sample, ".ivar.tsv")),
+    format = "ivar",
+    colData = DataFrame(sample_id = farjo_meta$sample, host_id = "p", timepoint = days))
+whe_f <- flagISNV(whe_f, ISNVFilter(minDepth = 1000L, minFreq = 0.03, maxFreq = 0.97))
 div_f <- as.data.frame(calcDiversity(whe_f, genomeLength = GL, indices = c("pi", "richness")))
-div_f$timepoint <- seq_len(n_tp)
+div_f$timepoint <- days
 div_f$pi_e4 <- as.numeric(div_f$pi) * 1e4
 div_f$richness <- as.numeric(div_f$richness)
 peak <- div_f$timepoint[which.max(div_f$richness)]
-record("fig4", "", "timepoints", n_tp)
+record("fig4", "", "saliva samples in the source data", nrow(farjo_all))
+record("fig4", "", "samples analysed (mean coverage >= 1000x)", n_tp)
+record("fig4", "", "days of infection analysed", paste(days, collapse = ", "))
 record("fig4", "a", "peak QC-passed iSNVs", max(div_f$richness))
-record("fig4", "a", "timepoint of peak", peak)
-record("fig4", "a", "timepoint of maximum pi", div_f$timepoint[which.max(div_f$pi_e4)])
+record("fig4", "a", "day of peak iSNV count", peak)
+record("fig4", "a", "day of maximum pi", div_f$timepoint[which.max(div_f$pi_e4)])
 scale_factor <- max(div_f$richness) / max(div_f$pi_e4)
 p4a <- ggplot(div_f, aes(x = timepoint)) +
     geom_col(aes(y = richness), fill = pal$skyblue, alpha = 0.50, width = 0.6) +
@@ -353,7 +378,7 @@ p4a <- ggplot(div_f, aes(x = timepoint)) +
     scale_y_continuous("QC-passed iSNVs (bars)",
                        sec.axis = sec_axis(~ . / scale_factor, name = expression(pi ~ "(" * 10^{-4} * ", line)")),
                        expand = expansion(mult = c(0, 0.08))) +
-    scale_x_continuous("Timepoint", breaks = seq_len(n_tp)) + labs(tag = "a") + theme_pub(10) +
+    scale_x_continuous("Day of infection", breaks = days) + labs(tag = "a") + theme_pub(10) +
     theme(axis.title.y.right = element_text(colour = pal$vermillion),
           axis.text.y.right = element_text(colour = pal$vermillion))
 
@@ -365,16 +390,18 @@ p4b <- ggplot(traj[traj$variant_key %in% top10, ],
     geom_line(linewidth = 0.7, alpha = 0.80) + geom_point(size = 1.5, alpha = 0.90) +
     geom_hline(yintercept = 3, linetype = "dotted", colour = pal$grey, linewidth = 0.3) +
     scale_colour_manual(values = rep(unname(unlist(pal[c("blue", "vermillion", "green", "orange", "skyblue", "purple", "black", "grey")])), 2L)) +
-    scale_x_continuous("Timepoint", breaks = seq_len(n_tp)) +
+    scale_x_continuous("Day of infection", breaks = days) +
     scale_y_continuous("Alternative allele frequency (%)", limits = c(0, 100)) +
     labs(colour = NULL, tag = "b") + theme_pub(10) + theme(legend.position = "none")
 
-key_tp <- unique(c(1L, peak, n_tp))
-sfs_tp <- lapply(key_tp, function(d) buildSFS(whe_f, sampleIdx = d, fold = TRUE, genomeLength = GL, nBins = 8))
+key_tp <- unique(c(days[1L], peak, days[n_tp]))
+sfs_tp <- lapply(key_tp, function(d) {
+    buildSFS(whe_f, sampleIdx = match(d, days), fold = TRUE, genomeLength = GL, nBins = 8)
+})
 sfs_df <- do.call(rbind, lapply(seq_along(key_tp), function(k) {
     s <- sfs_tp[[k]]; br <- s@breaks
     data.frame(freq = (br[-length(br)] + br[-1L]) / 2 * 100, prop = s@counts / max(sum(s@counts), 1),
-               tp = paste("Timepoint", key_tp[k]), stringsAsFactors = FALSE)
+               tp = paste("Day", key_tp[k]), stringsAsFactors = FALSE)
 }))
 sfs_df$tp <- factor(sfs_df$tp, levels = unique(sfs_df$tp))
 p4c <- ggplot(sfs_df, aes(x = freq, y = prop, fill = tp)) +
@@ -502,37 +529,82 @@ save_figure((p5a + p5b) / (p5c + p5d), "fig5_evolutionary_analysis", 7.5, 5.8)
 ## ================================================================
 ## Figure 6: effect of QC on Tajima's D and the SFS
 ## ================================================================
-taj_naive <- taj[is.finite(taj$D_naive), ]
-wt_D <- wilcox.test(taj_naive$D_naive, taj_qc$D_qc, exact = FALSE)
-record("fig6", "a", "median Tajima D naive", median(taj_naive$D_naive))
-record("fig6", "a", "median Tajima D QC", median(taj_qc$D_qc))
-record("fig6", "a", "Wilcoxon rank-sum p (naive vs QC)", wt_D$p.value)
-d_long <- rbind(data.frame(D = taj_naive$D_naive, condition = "Naive"),
-                data.frame(D = taj_qc$D_qc, condition = "QC"))
+## Naive and QC values of D come from the same samples, so they are
+## compared as pairs. The median paired difference gets a distribution-free
+## 95% interval from binomial order statistics, which keeps the many
+## samples QC leaves unchanged (difference zero) in the estimate. A
+## non-significant difference would not show that QC leaves D unchanged,
+## so the interval, not a p-value, is reported.
+median_ci <- function(x, level = 0.95) {
+    x <- sort(x[is.finite(x)])
+    n <- length(x)
+    k <- stats::qbinom((1 - level) / 2, n, 0.5)
+    if (k < 1L) return(c(NA_real_, NA_real_))
+    c(x[k], x[n - k + 1L])
+}
+taj_pair <- taj[is.finite(taj$D_naive) & is.finite(taj$D_qc), ]
+d_diff <- taj_pair$D_qc - taj_pair$D_naive
+d_diff_ci <- median_ci(d_diff)
+record("fig6", "a", "samples with finite D before and after QC", nrow(taj_pair))
+record("fig6", "a", "samples whose D changed under QC", sum(d_diff != 0))
+record("fig6", "a", "median Tajima D naive", median(taj_pair$D_naive))
+record("fig6", "a", "median Tajima D QC", median(taj_pair$D_qc))
+record("fig6", "a", "median paired change in D (QC minus naive)", median(d_diff))
+record("fig6", "a", "95% CI lower (order statistics)", d_diff_ci[1])
+record("fig6", "a", "95% CI upper (order statistics)", d_diff_ci[2])
+## When most samples lose no call, the overall median change is zero by
+## construction; the change among samples QC altered is reported as well.
+d_changed <- d_diff[d_diff != 0]
+d_changed_ci <- median_ci(d_changed)
+record("fig6", "a", "median change in D among samples QC altered",
+       if (length(d_changed)) median(d_changed) else NA_real_)
+record("fig6", "a", "95% CI lower, altered samples", d_changed_ci[1])
+record("fig6", "a", "95% CI upper, altered samples", d_changed_ci[2])
+d_long <- rbind(data.frame(D = taj_pair$D_naive, condition = "Naive"),
+                data.frame(D = taj_pair$D_qc, condition = "QC"))
 d_long$condition <- factor(d_long$condition, levels = c("Naive", "QC"))
 p6a <- ggplot(d_long, aes(x = D, fill = condition)) +
     geom_histogram(bins = 14, colour = "white", linewidth = 0.2, alpha = 0.55, position = "identity") +
     geom_vline(xintercept = 0, linetype = "dashed", colour = pal$grey, linewidth = 0.4) +
     scale_fill_manual(name = NULL, values = c(Naive = pal$orange, QC = pal$green)) +
     annotate("text", x = max(d_long$D), y = Inf, hjust = 1, vjust = 1.5, size = 3.0,
-             label = sprintf("Wilcoxon p = %.2f", wt_D$p.value)) +
+             label = sprintf("%d of %d samples changed\nmedian change %.2f\n(95%% CI %.2f to %.2f)",
+                             length(d_changed), nrow(taj_pair), median(d_changed),
+                             d_changed_ci[1], d_changed_ci[2])) +
     scale_x_continuous("Tajima's D") + scale_y_continuous("Samples", expand = expansion(mult = c(0, 0.15))) +
     labs(tag = "a") + theme_pub(10) + inside(0.02, 0.98)
 
-comparison <- compareSFS(sfs_naive, sfs_qc)
-record("fig6", "b", "compareSFS chi-squared", comparison$chisq_stat)
-record("fig6", "b", "compareSFS p", comparison$chisq_p)
-prop_df <- rbind(data.frame(freq = (sfs_naive@breaks[-length(sfs_naive@breaks)] + sfs_naive@breaks[-1L]) / 2 * 100,
-                            prop = comparison$proportions1, label = "Naive"),
-                 data.frame(freq = (sfs_qc@breaks[-length(sfs_qc@breaks)] + sfs_qc@breaks[-1L]) / 2 * 100,
-                            prop = comparison$proportions2, label = "QC"))
-prop_df$label <- factor(prop_df$label, levels = c("Naive", "QC"))
+## The QC spectrum is built from a subset of the naive calls, so the two are
+## not independent samples and a homogeneity test between them is invalid.
+## Compare instead the calls QC kept with the calls it removed, which are
+## disjoint. Pooled calls are still not independent draws within a host, so
+## the test is descriptive. With few removed calls some expected counts fall
+## below 5, so a Monte Carlo p-value is reported alongside the asymptotic one.
+sfs_removed <- buildSFS(pooled_whe(vars[!vars$concordant, ], "removed"),
+                        fold = TRUE, genomeLength = GL, nBins = 10)
+comparison <- compareSFS(sfs_qc, sfs_removed)
+kept_bins <- (sfs_qc@counts + sfs_removed@counts) > 0
+set.seed(20260915)
+mc_test <- chisq.test(rbind(sfs_qc@counts[kept_bins], sfs_removed@counts[kept_bins]),
+                      simulate.p.value = TRUE, B = 1e5)
+record("fig6", "b", "calls kept by QC in the spectrum", sum(sfs_qc@counts))
+record("fig6", "b", "calls removed by QC in the spectrum", sum(sfs_removed@counts))
+record("fig6", "b", "compareSFS chi-squared (kept vs removed)", comparison$chisq_stat)
+record("fig6", "b", "compareSFS df", comparison$df)
+record("fig6", "b", "compareSFS asymptotic p", comparison$chisq_p)
+record("fig6", "b", "smallest expected count", comparison$min_expected)
+record("fig6", "b", "Monte Carlo p (1e5 tables)", mc_test$p.value)
+bin_mid <- (sfs_qc@breaks[-length(sfs_qc@breaks)] + sfs_qc@breaks[-1L]) / 2 * 100
+prop_df <- rbind(data.frame(freq = bin_mid, prop = comparison$proportions1, label = "Kept by QC"),
+                 data.frame(freq = bin_mid, prop = comparison$proportions2, label = "Removed by QC"))
+prop_df$label <- factor(prop_df$label, levels = c("Kept by QC", "Removed by QC"))
 p6b <- ggplot(prop_df, aes(x = freq, y = prop, fill = label)) +
     geom_col(position = "dodge", alpha = 0.80, colour = "white", linewidth = 0.15) +
-    scale_fill_manual(name = NULL, values = c(Naive = pal$orange, QC = pal$green)) +
+    scale_fill_manual(name = NULL, values = c(`Kept by QC` = pal$green, `Removed by QC` = pal$vermillion)) +
     annotate("label", x = 40, y = max(prop_df$prop) * 0.70, size = 3.2, lineheight = 1.3,
              fill = alpha("white", 0.90), label.padding = unit(4, "pt"),
-             label = sprintf("χ² = %.1f\np = %.3f", comparison$chisq_stat, comparison$chisq_p)) +
+             label = sprintf("χ² = %.1f, df = %d\nMonte Carlo p = %.3f",
+                             comparison$chisq_stat, as.integer(comparison$df), mc_test$p.value)) +
     scale_x_continuous("Minor allele frequency (%)") +
     scale_y_continuous("Proportion", expand = expansion(mult = c(0, 0.12))) +
     labs(tag = "b") + theme_pub(10) + inside(0.75, 0.85, 0, 1)
