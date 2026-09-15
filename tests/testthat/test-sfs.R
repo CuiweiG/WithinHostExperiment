@@ -101,6 +101,45 @@ test_that("compareSFS compares two SFS objects", {
     expect_true("chisq_p" %in% names(res))
 })
 
+.sfs_with_counts <- function(counts) {
+    new("WithinHostSFS",
+        counts = as.integer(counts),
+        breaks = seq(0.03, 0.5, length.out = length(counts) + 1L),
+        folded = TRUE, sampleId = "s", genomeLength = 1000L,
+        nSites = as.integer(sum(counts)), meanDepth = 1000,
+        threshold = 0.03, corrected = FALSE)
+}
+
+test_that("compareSFS reports small expected counts instead of warning", {
+    sfs1 <- .sfs_with_counts(c(3, 1, 0, 2))
+    sfs2 <- .sfs_with_counts(c(1, 2, 1, 0))
+    expect_no_warning(res <- compareSFS(sfs1, sfs2))
+    mat <- rbind(c(3, 1, 0, 2), c(1, 2, 1, 0))
+    reference <- suppressWarnings(stats::chisq.test(mat))
+    expect_equal(res$chisq_stat, unname(reference$statistic))
+    expect_equal(res$chisq_p, reference$p.value)
+    expected <- outer(rowSums(mat), colSums(mat)) / sum(mat)
+    expect_equal(res$min_expected, min(expected))
+    expect_false(res$chisq_approx_ok)
+})
+
+test_that("compareSFS flags the approximation as reliable for large counts", {
+    sfs1 <- .sfs_with_counts(c(40, 30, 20, 10))
+    sfs2 <- .sfs_with_counts(c(35, 35, 15, 15))
+    res <- compareSFS(sfs1, sfs2)
+    expect_gte(res$min_expected, 5)
+    expect_true(res$chisq_approx_ok)
+})
+
+test_that("compareSFS returns NA diagnostics when fewer than two bins remain", {
+    sfs1 <- .sfs_with_counts(c(4, 0, 0))
+    sfs2 <- .sfs_with_counts(c(2, 0, 0))
+    res <- compareSFS(sfs1, sfs2)
+    expect_true(is.na(res$chisq_p))
+    expect_true(is.na(res$min_expected))
+    expect_true(is.na(res$chisq_approx_ok))
+})
+
 test_that("compareSFS rejects mismatched bins", {
     whe <- .make_whe()
     sfs1 <- buildSFS(whe, nBins = 10, genomeLength = 1000L)

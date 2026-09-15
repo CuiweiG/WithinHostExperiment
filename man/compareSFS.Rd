@@ -17,6 +17,10 @@ A named list with components:
     \item{chisq_stat}{Chi-squared statistic.}
     \item{chisq_p}{Chi-squared p-value.}
     \item{df}{Degrees of freedom.}
+    \item{min_expected}{Smallest expected count under homogeneity.}
+    \item{chisq_approx_ok}{\code{TRUE} when every expected count
+      is at least 5, the condition under which
+      \code{\link[stats]{chisq.test}} does not warn.}
     \item{n1}{Total variants in sfs1.}
     \item{n2}{Total variants in sfs2.}
     \item{proportions1}{Proportion in each bin, sfs1.}
@@ -32,9 +36,10 @@ homogeneity between two \code{\link{WithinHostSFS}} objects
 The test compares raw variant counts, so apply it to
 uncorrected spectra: the counts of a bias-corrected spectrum are
 rescaled and no longer multinomial. Bins where both spectra are
-empty are dropped, and the chi-squared approximation is
-unreliable when the remaining bins hold few variants; its
-warnings are suppressed, so check the bin counts.
+empty are dropped. The chi-squared approximation is unreliable
+when an expected count falls below 5; instead of a warning, that
+condition is reported in \code{chisq_approx_ok}, and the p-value
+should then be read with caution.
 }
 \examples{
 data(example_whe)
