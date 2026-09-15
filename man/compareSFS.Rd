@@ -36,7 +36,9 @@ homogeneity between two \code{\link{WithinHostSFS}} objects
 The test compares raw variant counts, so apply it to
 uncorrected spectra: the counts of a bias-corrected spectrum are
 rescaled and no longer multinomial. Bins where both spectra are
-empty are dropped. The chi-squared approximation is unreliable
+empty are dropped, and when only two bins remain
+\code{\link[stats]{chisq.test}} applies Yates' continuity
+correction. The chi-squared approximation is unreliable
 when an expected count falls below 5; instead of a warning, that
 condition is reported in \code{chisq_approx_ok}, and the p-value
 should then be read with caution.
