@@ -75,14 +75,14 @@ of the two replicates.
 > between replicates is {{fig1::a::median absolute replicate difference (percentage points)::%.1f}} percentage points.
 > **(b)** Per-sample nucleotide diversity before (naive) and after
 > replicate QC; black diamonds mark the medians
-> ({{fig1::b::median pi naive (x1e-4)::%.2f}} and {{fig1::b::median pi QC (x1e-4)::%.2f}} x 10^-4). QC only removes
+> ({{fig1::b::median pi naive (x1e-4)::%.3f}} and {{fig1::b::median pi QC (x1e-4)::%.3f}} x 10^-4). QC only removes
 > calls, so pi cannot rise. It left pi untouched in most samples and lowered it
 > in {{fig1::b::samples in which QC lowered pi::%d}} of {{fig1::b::samples::%d}}, by a median of {{fig1::b::median fall in pi among the samples QC lowered (%)::%.0f}}% among those;
 > in {{fig1::b::samples in which QC removed every call::%d}} samples no call survived and pi fell to zero.
-> **(c)** Median pi as the concordance threshold varies, recomputed from
-> the replicate frequencies already in the object rather than by
-> re-importing and re-filtering the data; the dashed lines mark 2 and 5
-> percentage points.
+> **(c)** Median pi as the concordance threshold varies from 0 to 20
+> percentage points of replicate difference, recomputed from the replicate
+> frequencies already in the object rather than by re-importing and
+> re-filtering the data; the dashed lines mark 2 and 5 percentage points.
 
 <div align="center">
 <img src="man/figures/fig2_frequency_spectrum.png" width="480" alt="iSNV frequency spectrum"/>
@@ -112,9 +112,10 @@ of the two replicates.
 > least one iSNV call, and that every other panel uses, are a subset of them.
 > **(b)** Concordant iSNV calls by gene, annotated with
 > `annotateFromGFF()` from the NCBI GFF3.
-> **(c)** Pair {{fig3::c::example pair::%s}}: {{fig3::c::donor iSNVs not detected in the recipient::%d}} of
-> {{fig3::c::donor iSNVs in the example pair::%d}} concordant donor iSNVs have no iSNV call in the
-> recipient.
+> **(c)** Pair {{fig3::c::example pair::%s}}, the pair with the most concordant donor iSNVs
+> among those whose recipient carries calls of its own:
+> {{fig3::c::donor iSNVs not detected in the recipient::%d}} of {{fig3::c::donor iSNVs in the example pair::%d}} donor iSNVs have no call in the recipient,
+> which carries {{fig3::c::iSNV calls in the recipient of the example pair::%d}} of its own.
 > **(d)** Of the {{fig3::d::pairs with at least one concordant donor iSNV::%d}} pairs whose donor carried at least one
 > concordant iSNV ({{data::::transmission pairs in metadata::%d}} pairs in the metadata),
 > {{fig3::d::pairs sharing no donor iSNV::%d}} ({{fig3::d::percentage sharing none::%.0f}}%) share none with the recipient.
@@ -138,15 +139,17 @@ of the two replicates.
 > 2024), limited to the {{fig4::::samples analysed (mean coverage >= 1000x)::%d}} samples the study analysed (days
 > {{fig4::::days of infection analysed::%s}}); a call needs at least 1,000 reads and a frequency
 > between 3% and 97%. The iVar tables also list insertions and deletions;
-> {{fig4::::indel rows dropped before QC::%d}} such rows are dropped and the {{fig4::::substitution rows kept::%d}} substitution rows kept, so every
+> {{fig4::::indel rows dropped before QC::%d}} such rows are dropped and the {{fig4::::substitution rows kept::comma}} substitution rows kept, so every
 > count below is of iSNVs.
 > **(a)** Richness (bars) and pi (line): QC-passed iSNVs peak at
-> {{fig4::a::peak QC-passed iSNVs::%d}} on day {{fig4::a::day of peak iSNV count::%d}}, and pi on day {{fig4::a::day of maximum pi::%d}}.
+> {{fig4::a::peak QC-passed iSNVs::%d}} on day {{fig4::a::day of peak iSNV count::%d}}, and pi peaks on day
+> {{fig4::a::day of maximum pi::%d}}.
 > **(b)** Frequency trajectories of the {{fig4::b::variants with trajectories shown::%d}} variants with the
 > widest frequency range, tracked with `trackFrequency()`; the dotted
 > line marks the 3% threshold.
-> **(c)** Folded spectra from `buildSFS()` on days {{fig4::c::days shown::%s}} -- the
-> first, peak and last sampled days, which merge when they coincide.
+> **(c)** Folded spectra from `buildSFS()` on the first, peak and last
+> sampled days, which here are days {{fig4::c::days shown::%s}}; two of them coincide when the
+> peak falls on the first or last day sampled.
 > **(d)** `flagTemporalInconsistency()`: {{fig4::d::transient sites (1 timepoint)::%d}} of {{fig4::d::variant sites classified::%d}} variant
 > sites ({{fig4::d::percentage transient::%.0f}}%) are detected on a single day. A site can also be
 > missed on a day when its depth is below 1,000 reads, or when its frequency
@@ -181,7 +184,7 @@ of the two replicates.
 > between them, so the ratio is a pN/pS, and the Jukes-Cantor correction it
 > carries barely moves proportions this small.
 > The panel shows the {{fig5::b::genes shown::%d}} genes with at least two counted calls and a
-> defined ratio, omitting {{fig5::b::genes omitted (one call or no synonymous call)::%d}}; those ratios rest on a handful of calls and
+> defined ratio, leaving out {{fig5::b::genes omitted (one call or no synonymous call)::%d}}; those ratios rest on a handful of calls and
 > are given with their counts. None of them is evidence of selection on any
 > gene.
 > **(c)** Per-sample pi ranked by the naive estimate; segments show the

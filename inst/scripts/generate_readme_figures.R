@@ -223,8 +223,9 @@ p1b <- ggplot(pi_long, aes(x = x, y = pi)) +
     geom_point(aes(colour = condition), size = 1.8, alpha = 0.85, shape = 16,
                position = position_jitter(width = 0.06, height = 0, seed = 42)) +
     annotate("point", x = c(1, 2), y = c(med_naive, med_qc), shape = 18, size = 5.5, colour = pal$black) +
-    annotate("text", x = 2.45, y = max(div$pi_naive) * 0.95, hjust = 1, vjust = 1, size = 3.0,
-             label = sprintf("%d of %d samples lower\nmedian fall among them %.0f%%",
+    annotate("text", x = 1.55, y = max(div$pi_naive) * 0.98, hjust = 0.5, vjust = 1,
+             size = 2.8, lineheight = 1.2,
+             label = sprintf("%d of %d samples lower\n(median fall %.0f%%)",
                              n_pi_lowered, n_samples, med_pct_drop)) +
     scale_colour_manual(values = c(Naive = pal$orange, QC = pal$green), guide = "none") +
     scale_x_continuous(NULL, breaks = c(1, 2), labels = c("Naive", "QC"), limits = c(0.55, 2.55)) +
@@ -242,7 +243,7 @@ p1c <- ggplot(thr_df, aes(t, pi)) +
     geom_ribbon(aes(ymin = 0, ymax = pi), fill = pal$blue, alpha = 0.20) +
     geom_line(colour = pal$blue, linewidth = 0.9) + geom_point(size = 1.5, colour = pal$blue) +
     geom_vline(xintercept = c(2, 5), linetype = "dashed", colour = c(pal$vermillion, pal$orange), linewidth = 0.45) +
-    scale_x_continuous("|Frequency difference| threshold (%)", breaks = seq(0, 20, 5),
+    scale_x_continuous("Concordance threshold", breaks = seq(0, 20, 5),
                        expand = expansion(mult = c(0.01, 0.03))) +
     scale_y_continuous(expression("Median" ~ pi ~ "(" * 10^{-4} * ")"), expand = expansion(mult = c(0.02, 0.10))) +
     labs(tag = "c") + theme_pub(10)
@@ -317,7 +318,20 @@ pair_df <- merge(pairs[pairs$Transmission_indiv == "A", c("sample", "pair_id")],
 in_recipient <- function(recipient, pos, alt) {
     any(vars$sample == recipient & vars$POS == pos & vars$ALT == alt)
 }
-example_pair <- "HH46"
+## The example pair is chosen by a rule rather than by hand: among the pairs
+## whose donor carries at least one concordant iSNV and whose recipient carries
+## at least one call of its own, take the one with the most donor iSNVs,
+## breaking ties alphabetically. A recipient with no calls at all cannot show
+## detection either way, so such a pair illustrates nothing.
+pair_donor_n <- vapply(pair_df$sample_donor,
+                       function(s) sum(concordant$sample == s), integer(1))
+pair_recipient_n <- vapply(pair_df$sample_recipient,
+                           function(s) sum(vars$sample == s), integer(1))
+eligible <- which(pair_donor_n > 0L & pair_recipient_n > 0L)
+example_pair <- pair_df$pair_id[eligible][
+    order(-pair_donor_n[eligible], pair_df$pair_id[eligible])][1L]
+record("fig3", "c", "iSNV calls in the recipient of the example pair",
+       pair_recipient_n[match(example_pair, pair_df$pair_id)])
 ep <- pair_df[pair_df$pair_id == example_pair, ]
 donor_calls <- concordant[concordant$sample == ep$sample_donor[1], ]
 loll <- data.frame(pos = donor_calls$POS,
@@ -339,10 +353,12 @@ p3c <- ggplot(loll, aes(y = label, x = donor_freq, fill = detected)) +
     scale_fill_manual(name = NULL, values = c("TRUE" = pal$green, "FALSE" = pal$vermillion),
                       labels = c("TRUE" = "iSNV in recipient", "FALSE" = "No iSNV in recipient")) +
     scale_x_continuous("Donor frequency (%)", expand = expansion(mult = c(0, 0.30))) +
-    annotate("text", x = max(loll$donor_freq) * 1.2, y = 0.6, hjust = 1, vjust = 0, size = 3.0, lineheight = 1.2,
-             label = sprintf("Pair %s\n%d/%d without a recipient iSNV", example_pair, n_lost, nrow(loll))) +
-    labs(y = NULL, tag = "c") + theme_pub(10) + inside(0.98, 0.02) +
-    theme(axis.text.y = element_text(size = 8))
+    labs(y = NULL, tag = "c",
+         subtitle = sprintf("Pair %s: %d of %d without a recipient iSNV",
+                            example_pair, n_lost, nrow(loll))) +
+    theme_pub(10) + inside(0.98, 0.02) +
+    theme(axis.text.y = element_text(size = 8),
+          plot.subtitle = element_text(size = 8.5, colour = "black"))
 
 ## Recipient calls come from the iSNV table (frequencies 2-98%), so a donor
 ## variant that became fixed in the recipient is also counted as not shared.
@@ -544,7 +560,7 @@ p5b <- ggplot(gene_dnds, aes(y = gene, x = gene_dNdS)) +
     geom_vline(xintercept = 1, linetype = "dashed", colour = pal$grey, linewidth = 0.5) +
     geom_text(aes(label = sprintf("%.2f (%dN/%dS)", gene_dNdS, gene_nN, gene_nS)),
               hjust = -0.05, size = 2.7) +
-    scale_x_continuous("dN/dS (Nei-Gojobori, pooled)", expand = expansion(mult = c(0, 0.45))) +
+    scale_x_continuous("pN/pS (Nei-Gojobori, pooled)", expand = expansion(mult = c(0, 0.45))) +
     labs(y = NULL, tag = "b") + theme_pub(10) + theme(axis.text.y = element_text(size = 9))
 
 ranked <- div[order(div$pi_naive, decreasing = TRUE), ]
@@ -676,14 +692,14 @@ prop_df$label <- factor(prop_df$label, levels = c("Kept by QC", "Removed by QC")
 p6b <- ggplot(prop_df, aes(x = freq, y = prop, fill = label)) +
     geom_col(position = "dodge", alpha = 0.80, colour = "white", linewidth = 0.15) +
     scale_fill_manual(name = NULL, values = c(`Kept by QC` = pal$green, `Removed by QC` = pal$vermillion)) +
-    annotate("label", x = 40, y = max(prop_df$prop) * 0.70, size = 3.2, lineheight = 1.3,
+    annotate("label", x = 33, y = max(prop_df$prop) * 0.52, size = 3.2, lineheight = 1.3,
              fill = alpha("white", 0.90), label.padding = unit(4, "pt"),
              label = sprintf("χ² = %.1f, df = %d\nMonte Carlo p %s",
                              comparison$chisq_stat, as.integer(comparison$df),
                              p_label(mc_test$p.value))) +
     scale_x_continuous("Minor allele frequency (%)") +
     scale_y_continuous("Proportion", expand = expansion(mult = c(0, 0.12))) +
-    labs(tag = "b") + theme_pub(10) + inside(0.75, 0.85, 0, 1)
+    labs(tag = "b") + theme_pub(10) + inside(0.98, 0.98, 1, 1)
 save_figure((p6a | p6b), "fig6_consensus_validation", 7.0, 3.2)
 
 ## The figure checksums tie README.md to the figures of this run: fill_readme.R
