@@ -487,10 +487,14 @@ neutralityFromSFS <- function(sfs, n = NULL) {
 #'     \item{chisq_stat}{Chi-squared statistic.}
 #'     \item{chisq_p}{Chi-squared p-value.}
 #'     \item{df}{Degrees of freedom.}
-#'     \item{min_expected}{Smallest expected count under homogeneity.}
+#'     \item{min_expected}{Smallest expected count under homogeneity,
+#'       or \code{NA} when fewer than two bins remain and no test is
+#'       run.}
 #'     \item{chisq_approx_ok}{\code{TRUE} when every expected count
 #'       is at least 5, the condition under which
-#'       \code{\link[stats]{chisq.test}} does not warn.}
+#'       \code{\link[stats]{chisq.test}} does not warn; \code{NA}
+#'       alongside the other \code{NA} diagnostics when no test is
+#'       run.}
 #'     \item{n1}{Total variants in sfs1.}
 #'     \item{n2}{Total variants in sfs2.}
 #'     \item{proportions1}{Proportion in each bin, sfs1.}

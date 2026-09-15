@@ -21,7 +21,8 @@ valuesDir <- if (length(args) >= 2L) args[[2]] else "readme_figure_output"
 templateFile <- file.path("inst", "scripts", "README_template.md")
 valuesFile <- file.path(valuesDir, "readme_figure_values.csv")
 sessionFile <- file.path(valuesDir, "sessionInfo.txt")
-for (f in c(templateFile, valuesFile, sessionFile)) {
+figureFile <- file.path(valuesDir, "figure_md5.csv")
+for (f in c(templateFile, valuesFile, sessionFile, figureFile)) {
     if (!file.exists(f)) stop("missing ", f, "; run generate_readme_figures.R first")
 }
 
@@ -40,10 +41,31 @@ if (opened != length(placeholders)) {
     stop(opened - length(placeholders), " malformed placeholder(s) in the template")
 }
 
+## Every figure the README shows must be the one this run of
+## generate_readme_figures.R produced, so that captions cannot be written from
+## the values of one run against the figures of another.
+figures <- utils::read.csv(figureFile, colClasses = "character", check.names = FALSE)
+shown <- unique(regmatches(text, gregexpr('(?<=<img src=")[^"]+', text, perl = TRUE))[[1]])
+for (img in shown) {
+    i <- match(img, figures$file)
+    if (is.na(i))
+        stop("the template shows ", img, ", which is not in ", figureFile,
+             "; re-run generate_readme_figures.R")
+    if (!file.exists(img)) stop("missing figure ", img, "; re-run generate_readme_figures.R")
+    if (!identical(unname(tools::md5sum(img)), figures$md5[i]))
+        stop(img, " is not the figure recorded in ", figureFile,
+             "; re-run generate_readme_figures.R so that the captions and the ",
+             "figures come from one run")
+}
+
 fillOne <- function(placeholder) {
     parts <- regmatches(placeholder, regexec(pattern, placeholder, perl = TRUE))[[1]][-1]
     key <- paste(parts[1:3], collapse = "::")
     format <- parts[4]
+    if (!(format %in% c("%d", "%s", "comma", "p") ||
+          grepl("^%[0-9]*\\.[0-9]+[fge]$", format)))
+        stop("'", key, "' asks for the format '", format,
+             "', which is not one of %d, %s, comma, p or %.Nf")
     if (identical(key, "session::::R version")) return(rVersion)
     i <- match(key, keys)
     if (is.na(i)) stop("no recorded value for '", key, "'")
@@ -60,7 +82,8 @@ fillOne <- function(placeholder) {
         if (abs(number - round(number)) > 1e-8) stop("'", key, "' is not a whole number: ", value)
         return(sprintf("%d", as.integer(round(number))))
     }
-    sprintf(format, number)
+    ## A value that rounds to zero from below would otherwise print as -0.00
+    sub("^-(0(\\.0*)?)$", "\\1", sprintf(format, number))
 }
 filled <- vapply(placeholders, fillOne, character(1), USE.NAMES = FALSE)
 regmatches(text, hits) <- list(filled)

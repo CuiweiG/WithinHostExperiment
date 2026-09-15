@@ -109,11 +109,14 @@ p_label <- function(p) {
     else if (p < 0.001) "< 0.001"
     else sprintf("= %.3f", p)
 }
+saved_figures <- character()
 save_figure <- function(plot, name, width, height) {
-    ggsave(file.path(FIGDIR, paste0(name, ".png")), plot, width = width,
-           height = height, dpi = 300, bg = "white")
+    png_file <- file.path(FIGDIR, paste0(name, ".png"))
+    ggsave(png_file, plot, width = width, height = height, dpi = 300,
+           bg = "white")
     ggsave(file.path(OUT, paste0(name, ".pdf")), plot, width = width,
            height = height, device = grDevices::cairo_pdf)
+    saved_figures <<- c(saved_figures, png_file)
     message("saved ", name)
 }
 
@@ -237,7 +240,7 @@ save_figure((p1a | p1b | p1c), "fig1_replicate_qc", 7.5, 3.1)
 ## Figure 2: frequency spectrum
 ## ================================================================
 n_sites <- length(unique(paste(vars$POS, vars$REF, vars$ALT)))
-record("fig2", "", "distinct sites", n_sites)
+record("fig2", "", "distinct variants", n_sites)
 vars$status <- factor(ifelse(vars$concordant, "Concordant", "Discordant"),
                       levels = c("Concordant", "Discordant"))
 record("fig2", "", "discordant calls below 10% mean frequency", sum(!vars$concordant & vars$mean_freq < 0.10))
@@ -250,7 +253,7 @@ p2 <- ggplot(vars, aes(x = mean_freq * 100, fill = status)) +
     scale_x_continuous("Alternative allele frequency (%)", breaks = seq(0, 100, 20),
                        expand = expansion(mult = c(0.01, 0.02))) +
     scale_y_continuous("iSNVs", expand = expansion(mult = c(0, 0.10))) +
-    labs(caption = sprintf("n = %d calls | %d sites | %d samples", n_isnv, n_sites, n_samples)) +
+    labs(caption = sprintf("n = %d calls | %d variants | %d samples", n_isnv, n_sites, n_samples)) +
     theme_pub(10) + inside(0.98, 0.98) +
     theme(plot.caption = element_text(size = 7, colour = "grey40", margin = margin(t = 4)))
 save_figure(p2, "fig2_frequency_spectrum", 4.2, 3.2)
@@ -435,8 +438,8 @@ record("fig4", "d", "persistent sites (>= 2 timepoints)", n_persistent)
 record("fig4", "d", "transient sites (1 timepoint)", n_transient)
 record("fig4", "d", "variant sites classified", n_persistent + n_transient)
 record("fig4", "d", "percentage transient", 100 * n_transient / (n_persistent + n_transient))
-tc_df <- data.frame(class = factor(c("Persistent\n(≥ 2 timepoints)", "Transient\n(1 timepoint)"),
-                                   levels = c("Persistent\n(≥ 2 timepoints)", "Transient\n(1 timepoint)")),
+tc_df <- data.frame(class = factor(c("Persistent\n(≥ 2 days)", "Transient\n(1 day)"),
+                                   levels = c("Persistent\n(≥ 2 days)", "Transient\n(1 day)")),
                     count = c(n_persistent, n_transient))
 p4d <- ggplot(tc_df, aes(x = class, y = count, fill = class)) +
     geom_col(width = 0.6, alpha = 0.90) +
@@ -632,6 +635,12 @@ p6b <- ggplot(prop_df, aes(x = freq, y = prop, fill = label)) +
     labs(tag = "b") + theme_pub(10) + inside(0.75, 0.85, 0, 1)
 save_figure((p6a | p6b), "fig6_consensus_validation", 7.0, 3.2)
 
+## The figure checksums tie README.md to the figures of this run: fill_readme.R
+## refuses to write captions for figures it does not recognise, so a values file
+## left behind by an earlier or interrupted run cannot be used silently.
+write.csv(data.frame(file = saved_figures,
+                     md5 = unname(tools::md5sum(saved_figures))),
+          file.path(OUT, "figure_md5.csv"), row.names = FALSE)
 write.csv(values, file.path(OUT, "readme_figure_values.csv"), row.names = FALSE)
 writeLines(capture.output(sessionInfo()), file.path(OUT, "sessionInfo.txt"))
 print(values, row.names = FALSE, right = FALSE)

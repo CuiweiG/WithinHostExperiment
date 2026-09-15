@@ -1,6 +1,6 @@
 # WithinHostExperiment 0.99.0
 
-## Corrections from technical review
+## Corrections made before submission
 
 * `compareSFS()` suppressed every warning from `chisq.test()`, so a p-value
   resting on expected counts below 5 looked as trustworthy as any other. It
@@ -76,8 +76,6 @@
   appear at only one timepoint (likely artefacts) versus persistent
   ones detected across multiple consecutive timepoints. Supports
   configurable `minTimepoints` and `minConsecutive` thresholds.
-  This is a QC dimension unique to longitudinal within-host data
-  that no existing tool automates.
 * **Cross-contamination detection**:
   `detectCrossContamination()` identifies index-hopping signatures
   where a high-frequency variant in one sample appears at

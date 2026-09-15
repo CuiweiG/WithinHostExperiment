@@ -25,8 +25,8 @@ practical problems:
    filtering, computing diversity and exporting for bottleneck
    estimation are often handled by separate scripts (Figure 3).
 3. **Longitudinal data need their own checks** -- following variant
-   frequencies across sampling days calls for tracking and consistency
-   flags that single samples do not (Figure 4).
+   frequencies across sampling days needs tracking and consistency flags
+   that a single-sample workflow has no use for (Figure 4).
 4. **Hard filtering loses provenance** -- deleting variants that fail
    a threshold prevents re-analysis under other criteria. Flagging
    instead keeps every call, while downstream summaries use only those
@@ -46,7 +46,7 @@ All figures use real, publicly available data:
 | Source | Data | Role |
 |---------|-----------|------|
 | **Bendall *et al.* (2023)** *Nat. Commun.* 14:272 | {{data::::iSNV calls::%d}} iSNVs, {{data::::samples::%d}} samples, duplicate sequencing, {{data::::transmission pairs in metadata::%d}} transmission pairs | QC, diversity, transmission, population genetics (Figs 1--3, 5--6) |
-| **Farjo *et al.* (2024)** *J. Virol.* 98:e01618-23 | Participant 432870: {{fig4::::saliva samples in the source data::%d}} daily saliva samples; the {{fig4::::samples analysed (mean coverage >= 1000x)::%d}} that the study analysed (mean coverage of at least 1000x; days {{fig4::::days of infection analysed::%s}}) are used | Longitudinal within-host evolution (Fig 4) |
+| **Farjo *et al.* (2024)** *J. Virol.* 98:e01618-23 | Participant 432870: {{fig4::::saliva samples in the source data::%d}} daily saliva samples; the {{fig4::::samples analysed (mean coverage >= 1000x)::%d}} that the study analysed (mean coverage of at least 1,000x; days {{fig4::::days of infection analysed::%s}}) are used | Longitudinal within-host evolution (Fig 4) |
 | **NCBI RefSeq** NC_045512.2 GFF3 | SARS-CoV-2 gene annotation | `annotateFromGFF()` demo (Figs 3b, 5b) |
 
 All figures were generated with {{session::::R version::%s}} by
@@ -74,8 +74,9 @@ that file by `inst/scripts/fill_readme.R`. No data were simulated.
 > {{fig1::b::samples::%d}} samples, and the median fall, across the samples whose naive
 > estimate is above zero, is {{fig1::b::median per-sample fall in pi (%)::%.0f}}%.
 > **(c)** Median pi as the concordance threshold varies, recomputed from
-> the per-call frequency difference that QC keeps rather than by
-> re-importing and re-filtering the data; the dashed lines mark 2% and 5%.
+> the replicate frequencies already in the object rather than by
+> re-importing and re-filtering the data; the dashed lines mark 2 and 5
+> percentage points.
 
 <div align="center">
 <img src="man/figures/fig2_frequency_spectrum.png" width="480" alt="iSNV frequency spectrum"/>
@@ -83,7 +84,7 @@ that file by `inst/scripts/fill_readme.R`. No data were simulated.
 
 > **Figure 2 | Where discordant calls fall.**
 > Mean replicate frequencies of the {{data::::iSNV calls::%d}} calls, which fall at
-> {{fig2::::distinct sites::%d}} distinct variants (position and substitution):
+> {{fig2::::distinct variants::%d}} distinct variants (position and substitution):
 > {{fig2::::discordant calls below 10% mean frequency::%d}} of the
 > {{fig1::a::discordant calls::%d}} discordant calls sit below 10%, the range in which
 > sequencing and amplification errors are hardest to tell apart from
@@ -124,9 +125,9 @@ that file by `inst/scripts/fill_readme.R`. No data were simulated.
 > **Figure 4 | Within-host dynamics across sampling days.**
 > Daily saliva samples from one SARS-CoV-2 participant (Farjo *et al.*
 > 2024), limited to the {{fig4::::samples analysed (mean coverage >= 1000x)::%d}} samples the study analysed (days
-> {{fig4::::days of infection analysed::%s}}); a call needs at least 1000 reads and a frequency
+> {{fig4::::days of infection analysed::%s}}); a call needs at least 1,000 reads and a frequency
 > between 3% and 97%.
-> **(a)** Richness (bars) and pi (red line): QC-passed iSNVs peak at
+> **(a)** Richness (bars) and pi (line): QC-passed iSNVs peak at
 > {{fig4::a::peak QC-passed iSNVs::%d}} on day {{fig4::a::day of peak iSNV count::%d}}, and pi on day {{fig4::a::day of maximum pi::%d}}.
 > **(b)** Frequency trajectories of the {{fig4::b::variants with trajectories shown::%d}} variants with the
 > widest frequency range, tracked with `trackFrequency()`; the dotted
@@ -135,7 +136,7 @@ that file by `inst/scripts/fill_readme.R`. No data were simulated.
 > first, peak and last sampled days, which merge when they coincide.
 > **(d)** `flagTemporalInconsistency()`: {{fig4::d::transient sites (1 timepoint)::%d}} of {{fig4::d::variant sites classified::%d}} variant
 > sites ({{fig4::d::percentage transient::%.0f}}%) are detected on a single day. A site can also be
-> missed on a day when its depth is below 1000 reads, so transient sites
+> missed on a day when its depth is below 1,000 reads, so transient sites
 > are flagged for review rather than treated as errors.
 
 ---
@@ -158,10 +159,10 @@ that file by `inst/scripts/fill_readme.R`. No data were simulated.
 > ({{fig5::b::pooled nonsynonymous iSNVs::%d}} nonsynonymous, {{fig5::b::pooled synonymous iSNVs::%d}} synonymous; pooled ratio {{fig5::b::pooled dN/dS (Jukes-Cantor)::%.2f}}).
 > A further {{fig5::b::concordant iSNVs outside CDS or unannotated::%d}} concordant calls lie outside the annotated
 > coding sequences, or carry no codon annotation, and enter neither count.
-> Per-gene ratios rest on a handful of calls and are shown with their
-> counts; a gene with no synonymous call gives no ratio and appears in
-> grey with its nonsynonymous count. None of them is evidence of
-> selection on any gene.
+> The panel shows the genes with at least two counted calls; those ratios
+> rest on a handful of calls and are given with their counts, and a gene
+> with no synonymous call gives no ratio and appears in grey with its
+> nonsynonymous count. None of them is evidence of selection on any gene.
 > **(c)** Per-sample pi ranked by the naive estimate; segments show the
 > reduction from QC.
 > **(d)** Naive, QC and bias-corrected spectra as `WithinHostSFS`
@@ -239,8 +240,8 @@ nb <- quickBottleneck(whe, pairId = "pair_1")
 1. **Flag, don't delete.** QC marks variants in `qcPass` rather than
    removing rows, preserving all data for re-analysis under different
    thresholds.
-2. **Replicate-aware.** Technical replicate concordance is a
-   first-class QC criterion, not a post-hoc script.
+2. **Replicate-aware.** Technical replicate concordance is part of
+   the QC step rather than a separate script.
 3. **Interoperable, don't reinvent.** Standardised export to
    ViralBottleneck (Zheng *et al.* 2025) and VRanges-based
    Bioconductor workflows.
@@ -291,20 +292,20 @@ Data files in `inst/scripts/real_data/` (GitHub only, not in installed package):
   constrain the evolution of highly transmissible SARS-CoV-2 variants.
   *Nat. Commun.* 14:272.
 - Sobel Leonard A *et al.* (2017) Transmission bottleneck size
-  estimation from pathogen deep-sequencing data. *J Virol*
+  estimation from pathogen deep-sequencing data. *J. Virol.*
   91:e00171-17.
 - Mostefai F *et al.* (2024) Refining SARS-CoV-2 intra-host variation
   by leveraging large-scale sequencing data. *NAR Genom. Bioinform.*
   6:lqae145.
 - Zheng B, Johnson PCD, Hughes J (2025) ViralBottleneck: an R package for
-  estimating viral transmission bottlenecks. *Virus Evolution*
+  estimating viral transmission bottlenecks. *Virus Evol.*
   11:veaf071.
 - Tajima F (1989) Statistical method for testing the neutral mutation
   hypothesis by DNA polymorphism. *Genetics* 123:585-595.
 - Fu YX (1997) Statistical tests of neutrality of mutations against
   population growth. *Genetics* 147:915-925.
 - Nei M, Gojobori T (1986) Simple methods for estimating the numbers
-  of synonymous and nonsynonymous substitutions. *Mol Biol Evol*
+  of synonymous and nonsynonymous substitutions. *Mol. Biol. Evol.*
   3:418-426.
 
 ## Documentation

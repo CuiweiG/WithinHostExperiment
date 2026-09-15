@@ -54,8 +54,8 @@ Transient iSNVs are more likely to be sequencing artefacts;
 persistent ones are more likely genuine within-host variants.
 }
 \details{
-This function implements a QC dimension that is unique to
-longitudinal within-host data. The biological rationale:
+This check applies only where a host was sampled more than once.
+The biological rationale:
 genuine within-host variants arise from viral replication and
 should persist (or change smoothly) across consecutive
 timepoints. An iSNV that appears once at 5\% and is absent at
@@ -87,6 +87,6 @@ S4Vectors::mcols(SummarizedExperiment::rowRanges(whe))$temporal_class
 \references{
 Farjo M et al. (2024). Within-host evolutionary dynamics and
 tissue compartmentalization during acute SARS-CoV-2 infection.
-\emph{J Virol} 98:e01618-23.
+\emph{J. Virol.} 98:e01618-23.
 \doi{10.1128/jvi.01618-23}
 }
