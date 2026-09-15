@@ -110,14 +110,22 @@ piISNV <- function(freq, genomeLength, meanDepth = NULL) {
 #' \deqn{\hat{\theta}_W = S / (a_n \cdot L)}
 #' where \eqn{S} is the number of segregating sites,
 #' \eqn{a_n = \sum_{i=1}^{n-1} 1/i} is the harmonic number,
-#' and \eqn{L} is the genome length. For deep sequencing data,
-#' the mean read depth is used as an approximation for the
-#' sample size \eqn{n} (the number of sampled viral genomes).
+#' and \eqn{L} is the genome length, with \eqn{n} the number of
+#' sampled viral genomes.
+#'
+#' As \code{\link{tajimaD}} sets out, raw read depth should
+#' \strong{not} be passed as \eqn{n} for deep sequencing data:
+#' reads are technical replicates of a much smaller viral
+#' population, and a depth-sized \eqn{n} inflates \eqn{a_n} and
+#' makes \eqn{\theta_W} correspondingly small. Pass an effective
+#' sample size, or a depth capped at one, as
+#' \code{\link{calcNeutralityTests}} does.
 #'
 #' @param nSites Integer scalar. Number of segregating (iSNV) sites.
 #' @param genomeLength Integer scalar. Genome length in bp.
-#' @param meanDepth Numeric scalar. Mean read depth (approximates
-#'   sample size n).
+#' @param meanDepth Numeric scalar. Sample size \eqn{n}: an
+#'   effective number of sampled genomes, not raw read depth. See
+#'   Details.
 #'
 #' @return Numeric scalar. Watterson's theta estimate.
 #'
@@ -129,7 +137,8 @@ piISNV <- function(freq, genomeLength, meanDepth = NULL) {
 #'
 #' @export
 #' @examples
-#' wattersonISNV(15, genomeLength = 13588, meanDepth = 2000)
+#' ## n is an effective sample size, not the raw depth
+#' wattersonISNV(15, genomeLength = 13588, meanDepth = 100)
 wattersonISNV <- function(nSites, genomeLength, meanDepth) {
     if (!is.numeric(nSites) || length(nSites) != 1L || nSites < 0)
         stop("'nSites' must be a single non-negative number.")
@@ -233,7 +242,11 @@ chao1ISNV <- function(counts, detected) {
 #'   \code{"richness"}, \code{"simpson"}, \code{"chao1"}
 #'   (default: all six).
 #' @param genomeLength Integer (optional). Required for \code{"pi"}
-#'   and \code{"watterson"}.
+#'   and \code{"watterson"}. For \code{"watterson"}, the sample's
+#'   median read depth is passed as the sample size \eqn{n}, which
+#'   for the reasons given in \code{\link{tajimaD}} makes
+#'   \eqn{\theta_W} small; \code{\link{calcNeutralityTests}} caps
+#'   \eqn{n} instead, so the two need not agree.
 #' @param usePassedOnly Logical. If TRUE (default), only use variants
 #'   where \code{qcPass == TRUE}.
 #' @param ... Additional arguments (currently unused).

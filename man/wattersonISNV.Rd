@@ -11,8 +11,9 @@ wattersonISNV(nSites, genomeLength, meanDepth)
 
 \item{genomeLength}{Integer scalar. Genome length in bp.}
 
-\item{meanDepth}{Numeric scalar. Mean read depth (approximates
-sample size n).}
+\item{meanDepth}{Numeric scalar. Sample size \eqn{n}: an
+effective number of sampled genomes, not raw read depth. See
+Details.}
 }
 \value{
 Numeric scalar. Watterson's theta estimate.
@@ -22,12 +23,21 @@ Estimates Watterson's theta (Watterson 1975):
 \deqn{\hat{\theta}_W = S / (a_n \cdot L)}
 where \eqn{S} is the number of segregating sites,
 \eqn{a_n = \sum_{i=1}^{n-1} 1/i} is the harmonic number,
-and \eqn{L} is the genome length. For deep sequencing data,
-the mean read depth is used as an approximation for the
-sample size \eqn{n} (the number of sampled viral genomes).
+and \eqn{L} is the genome length, with \eqn{n} the number of
+sampled viral genomes.
+}
+\details{
+As \code{\link{tajimaD}} sets out, raw read depth should
+\strong{not} be passed as \eqn{n} for deep sequencing data:
+reads are technical replicates of a much smaller viral
+population, and a depth-sized \eqn{n} inflates \eqn{a_n} and
+makes \eqn{\theta_W} correspondingly small. Pass an effective
+sample size, or a depth capped at one, as
+\code{\link{calcNeutralityTests}} does.
 }
 \examples{
-wattersonISNV(15, genomeLength = 13588, meanDepth = 2000)
+## n is an effective sample size, not the raw depth
+wattersonISNV(15, genomeLength = 13588, meanDepth = 100)
 }
 \references{
 Watterson GA (1975). On the number of segregating sites in
