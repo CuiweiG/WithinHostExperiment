@@ -8,8 +8,10 @@
 ##   Rscript inst/scripts/fill_readme.R
 ##
 ## format is a sprintf() format, "%d" (checked to be a whole number),
-## "%s" (inserted as recorded) or "comma" (rounded, with thousands
-## separators). {{session::::R version::%s}} comes from sessionInfo.txt.
+## "%s" (inserted as recorded), "comma" (rounded, with thousands
+## separators) or "p" (a p-value as "= 0.068", or "< 0.001" when smaller
+## than that, so a small p is never printed as 0.000).
+## {{session::::R version::%s}} comes from sessionInfo.txt.
 ## The script stops if a placeholder has no recorded value, a value is not
 ## numeric where a number is expected, or any placeholder is left unfilled.
 
@@ -30,7 +32,7 @@ rVersion <- sub("^(R version [0-9.]+).*$", "\\1", readLines(sessionFile, n = 1L)
 if (!grepl("^R version [0-9.]+$", rVersion)) stop("cannot read the R version from ", sessionFile)
 
 text <- paste(readLines(templateFile, encoding = "UTF-8", warn = FALSE), collapse = "\n")
-pattern <- "\\{\\{([^:{}]*)::([^:{}]*)::((?:(?!::|\\{\\{|\\}\\}).)+)::([^:{}]+)\\}\\}"
+pattern <- "\\{\\{([^:{}]*)::([^:{}]*)::((?:(?!::|\\{\\{|\\}\\}).)+)::([^:{}\\s]+)\\}\\}"
 hits <- gregexpr(pattern, text, perl = TRUE)
 placeholders <- regmatches(text, hits)[[1]]
 opened <- lengths(regmatches(text, gregexpr("\\{\\{", text)))
@@ -50,6 +52,10 @@ fillOne <- function(placeholder) {
     number <- suppressWarnings(as.numeric(value))
     if (is.na(number)) stop("'", key, "' is not numeric: ", value)
     if (identical(format, "comma")) return(format(round(number), big.mark = ",", scientific = FALSE))
+    if (identical(format, "p")) {
+        if (number < 0 || number > 1) stop("'", key, "' is not a p-value: ", value)
+        return(if (number < 0.001) "< 0.001" else sprintf("= %.3f", number))
+    }
     if (identical(format, "%d")) {
         if (abs(number - round(number)) > 1e-8) stop("'", key, "' is not a whole number: ", value)
         return(sprintf("%d", as.integer(round(number))))

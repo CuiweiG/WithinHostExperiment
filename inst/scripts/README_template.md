@@ -65,15 +65,17 @@ that file by `inst/scripts/fill_readme.R`. No data were simulated.
 > **Figure 1 | Replicate-aware QC and post-hoc threshold exploration.**
 > **(a)** Replicate frequencies for {{data::::iSNV calls::%d}} iSNV calls:
 > concordant (|frequency difference| <= 2 percentage points,
-> *n* = {{fig1::a::concordant calls (|freq diff| <= 0.02)::%d}}, green) and discordant
-> (*n* = {{fig1::a::discordant calls::%d}}, red); R^2 = {{fig1::a::replicate R2::%.3f}}.
+> *n* = {{fig1::a::concordant calls (|freq diff| <= 0.02)::%d}}) and discordant
+> (*n* = {{fig1::a::discordant calls::%d}}); R^2 = {{fig1::a::replicate R2::%.3f}}.
 > **(b)** Per-sample nucleotide diversity before (naive) and after
 > replicate QC; black diamonds mark the medians
 > ({{fig1::b::median pi naive (x1e-4)::%.2f}} and {{fig1::b::median pi QC (x1e-4)::%.2f}} x 10^-4). QC only removes
 > calls, so pi cannot rise; it fell in {{fig1::b::samples in which QC lowered pi::%d}} of
-> {{fig1::b::samples::%d}} samples, by a median of {{fig1::b::median per-sample fall in pi (%)::%.0f}}%.
-> **(c)** Median pi across concordance thresholds, computed post hoc
-> from one flagged dataset without re-running the pipeline.
+> {{fig1::b::samples::%d}} samples, and the median fall, across the samples whose naive
+> estimate is above zero, is {{fig1::b::median per-sample fall in pi (%)::%.0f}}%.
+> **(c)** Median pi as the concordance threshold varies, recomputed from
+> the per-call frequency difference that QC keeps rather than by
+> re-importing and re-filtering the data; the dashed lines mark 2% and 5%.
 
 <div align="center">
 <img src="man/figures/fig2_frequency_spectrum.png" width="480" alt="iSNV frequency spectrum"/>
@@ -96,8 +98,8 @@ that file by `inst/scripts/fill_readme.R`. No data were simulated.
 </div>
 
 > **Figure 3 | From raw data to annotated transmission pairs.**
-> **(a)** Mean read depth for {{fig3::a::samples with depth::%d}} samples (median
-> {{fig3::a::median mean read depth::comma}}x).
+> **(a)** Mean read depth, averaged over the two replicates, for
+> {{fig3::a::samples with depth::%d}} samples (median {{fig3::a::median mean read depth::comma}}x).
 > **(b)** Concordant iSNV calls by gene, annotated with
 > `annotateFromGFF()` from the NCBI GFF3.
 > **(c)** Pair {{fig3::c::example pair::%s}}: {{fig3::c::donor iSNVs not detected in the recipient::%d}} of
@@ -122,11 +124,13 @@ that file by `inst/scripts/fill_readme.R`. No data were simulated.
 > **Figure 4 | Within-host dynamics across sampling days.**
 > Daily saliva samples from one SARS-CoV-2 participant (Farjo *et al.*
 > 2024), limited to the {{fig4::::samples analysed (mean coverage >= 1000x)::%d}} samples the study analysed (days
-> {{fig4::::days of infection analysed::%s}}); calls need at least 1000 reads.
+> {{fig4::::days of infection analysed::%s}}); a call needs at least 1000 reads and a frequency
+> between 3% and 97%.
 > **(a)** Richness (bars) and pi (red line): QC-passed iSNVs peak at
 > {{fig4::a::peak QC-passed iSNVs::%d}} on day {{fig4::a::day of peak iSNV count::%d}}, and pi on day {{fig4::a::day of maximum pi::%d}}.
-> **(b)** Frequency trajectories of the 10 variants with the widest
-> frequency range, tracked with `trackFrequency()`.
+> **(b)** Frequency trajectories of the {{fig4::b::variants with trajectories shown::%d}} variants with the
+> widest frequency range, tracked with `trackFrequency()`; the dotted
+> line marks the 3% threshold.
 > **(c)** Folded spectra from `buildSFS()` on days {{fig4::c::days shown::%s}} -- the
 > first, peak and last sampled days, which merge when they coincide.
 > **(d)** `flagTemporalInconsistency()`: {{fig4::d::transient sites (1 timepoint)::%d}} of {{fig4::d::variant sites classified::%d}} variant
@@ -144,7 +148,7 @@ that file by `inst/scripts/fill_readme.R`. No data were simulated.
 
 > **Figure 5 | Population-genetic summaries of the flagged data.**
 > **(a)** Tajima's D for the {{fig5::a::samples with >= 1 concordant iSNV::%d}} samples with at least one
-> concordant iSNV, using read depth capped at 100 as the sample size:
+> concordant iSNV and a finite D, using read depth capped at 100 as the sample size:
 > median {{fig5::a::median Tajima D (QC, n capped at 100)::%.2f}}, {{fig5::a::percentage of samples with D < 0::%.0f}}% below zero. Calls below the 2% frequency
 > threshold are absent, and negative D is expected both under purifying
 > selection and after population growth, so these values describe the
@@ -152,14 +156,16 @@ that file by `inst/scripts/fill_readme.R`. No data were simulated.
 > **(b)** Nei-Gojobori ratio of nonsynonymous to synonymous iSNVs per
 > site, pooling concordant calls across samples
 > ({{fig5::b::pooled nonsynonymous iSNVs::%d}} nonsynonymous, {{fig5::b::pooled synonymous iSNVs::%d}} synonymous; pooled ratio {{fig5::b::pooled dN/dS (Jukes-Cantor)::%.2f}}).
-> A further {{fig5::b::concordant iSNVs outside CDS or unannotated::%d}} concordant calls fall outside annotated coding
-> sequence and enter neither count.
+> A further {{fig5::b::concordant iSNVs outside CDS or unannotated::%d}} concordant calls lie outside the annotated
+> coding sequences, or carry no codon annotation, and enter neither count.
 > Per-gene ratios rest on a handful of calls and are shown with their
-> counts; they are not evidence of selection on any gene.
+> counts; a gene with no synonymous call gives no ratio and appears in
+> grey with its nonsynonymous count. None of them is evidence of
+> selection on any gene.
 > **(c)** Per-sample pi ranked by the naive estimate; segments show the
 > reduction from QC.
 > **(d)** Naive, QC and bias-corrected spectra as `WithinHostSFS`
-> objects from `buildSFS()` and `correctSFSBias()`.
+> objects from `buildSFS()` and `correctSFSBias()` (binomial correction).
 
 ---
 
@@ -177,12 +183,13 @@ that file by `inst/scripts/fill_readme.R`. No data were simulated.
 > {{fig6::a::samples whose D changed under QC::%d}} samples, and among those the median change is
 > {{fig6::a::median change in D among samples QC altered::%.2f}} (95% CI {{fig6::a::95% CI lower, altered samples::%.2f}} to {{fig6::a::95% CI upper, altered samples::%.2f}}). Both intervals are
 > distribution-free, from binomial order statistics.
-> **(b)** Frequency spectra of the {{fig6::b::calls kept by QC in the spectrum::%d}} calls QC kept and the
-> {{fig6::b::calls removed by QC in the spectrum::%d}} it removed, compared with `compareSFS()`:
-> chi-squared = {{fig6::b::compareSFS chi-squared (kept vs removed)::%.1f}}, df = {{fig6::b::compareSFS df::%d}}, asymptotic *p* = {{fig6::b::compareSFS asymptotic p::%.3f}}; the
-> smallest expected count is {{fig6::b::smallest expected count::%.1f}}, and the Monte Carlo *p*-value from
-> 10^5 tables is {{fig6::b::Monte Carlo p (1e5 tables)::%.3f}}. Calls pooled across samples are not
-> independent draws, so the comparison is descriptive.
+> **(b)** Frequency spectra of the calls QC kept and the calls it removed
+> ({{fig6::b::calls kept by QC in the spectrum::%d}} and {{fig6::b::calls removed by QC in the spectrum::%d}} of them fall inside the binned
+> frequency range), compared with `compareSFS()`:
+> chi-squared = {{fig6::b::compareSFS chi-squared (kept vs removed)::%.1f}}, df = {{fig6::b::compareSFS df::%d}}, asymptotic *p* {{fig6::b::compareSFS asymptotic p::p}} and
+> Monte Carlo *p* from 10^5 tables {{fig6::b::Monte Carlo p (1e5 tables)::p}}; the smallest expected count is
+> {{fig6::b::smallest expected count::%.1f}}. Calls pooled across samples are not independent draws, so the
+> comparison is descriptive.
 
 ---
 

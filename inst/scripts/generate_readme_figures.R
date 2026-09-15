@@ -68,7 +68,7 @@ values <- data.frame(figure = character(), panel = character(),
                      stringsAsFactors = FALSE)
 record <- function(figure, panel, quantity, value) {
     values[nrow(values) + 1L, ] <<- list(figure, panel, quantity,
-                                         format(value, digits = 6))
+                                         format(value, digits = 15))
     invisible(value)
 }
 
@@ -101,6 +101,13 @@ inside <- function(x, y, hjust = x, vjust = y) {
     theme(legend.position = "inside",
           legend.position.inside = c(x, y),
           legend.justification.inside = c(hjust, vjust))
+}
+## A p-value below 0.001 is written as an inequality: three decimals would
+## print it as 0.000, which reads as zero.
+p_label <- function(p) {
+    if (length(p) != 1L || is.na(p)) "not available"
+    else if (p < 0.001) "< 0.001"
+    else sprintf("= %.3f", p)
 }
 save_figure <- function(plot, name, width, height) {
     ggsave(file.path(FIGDIR, paste0(name, ".png")), plot, width = width,
@@ -392,6 +399,7 @@ p4a <- ggplot(div_f, aes(x = timepoint)) +
 traj <- as.data.frame(trackFrequency(whe_f, hostCol = "host_id", timeCol = "timepoint"))
 freq_range <- tapply(traj$frequency, traj$variant_key, function(x) diff(range(x)))
 top10 <- names(sort(freq_range, decreasing = TRUE))[seq_len(min(10L, length(freq_range)))]
+record("fig4", "b", "variants with trajectories shown", length(top10))
 p4b <- ggplot(traj[traj$variant_key %in% top10, ],
               aes(x = timepoint, y = frequency * 100, colour = variant_key, group = variant_key)) +
     geom_line(linewidth = 0.7, alpha = 0.80) + geom_point(size = 1.5, alpha = 0.90) +
@@ -577,9 +585,13 @@ p6a <- ggplot(d_long, aes(x = D, fill = condition)) +
     geom_vline(xintercept = 0, linetype = "dashed", colour = pal$grey, linewidth = 0.4) +
     scale_fill_manual(name = NULL, values = c(Naive = pal$orange, QC = pal$green)) +
     annotate("text", x = max(d_long$D), y = Inf, hjust = 1, vjust = 1.5, size = 3.0,
-             label = sprintf("%d of %d samples changed\nmedian change %.2f\n(95%% CI %.2f to %.2f)",
-                             length(d_changed), nrow(taj_pair), median(d_changed),
-                             d_changed_ci[1], d_changed_ci[2])) +
+             label = if (length(d_changed)) {
+                 sprintf("%d of %d samples changed\nmedian change %.2f\n(95%% CI %.2f to %.2f)",
+                         length(d_changed), nrow(taj_pair), median(d_changed),
+                         d_changed_ci[1], d_changed_ci[2])
+             } else {
+                 sprintf("no sample of %d changed", nrow(taj_pair))
+             }) +
     scale_x_continuous("Tajima's D") + scale_y_continuous("Samples", expand = expansion(mult = c(0, 0.15))) +
     labs(tag = "a") + theme_pub(10) + inside(0.02, 0.98)
 
@@ -612,8 +624,9 @@ p6b <- ggplot(prop_df, aes(x = freq, y = prop, fill = label)) +
     scale_fill_manual(name = NULL, values = c(`Kept by QC` = pal$green, `Removed by QC` = pal$vermillion)) +
     annotate("label", x = 40, y = max(prop_df$prop) * 0.70, size = 3.2, lineheight = 1.3,
              fill = alpha("white", 0.90), label.padding = unit(4, "pt"),
-             label = sprintf("χ² = %.1f, df = %d\nMonte Carlo p = %.3f",
-                             comparison$chisq_stat, as.integer(comparison$df), mc_test$p.value)) +
+             label = sprintf("χ² = %.1f, df = %d\nMonte Carlo p %s",
+                             comparison$chisq_stat, as.integer(comparison$df),
+                             p_label(mc_test$p.value))) +
     scale_x_continuous("Minor allele frequency (%)") +
     scale_y_continuous("Proportion", expand = expansion(mult = c(0, 0.12))) +
     labs(tag = "b") + theme_pub(10) + inside(0.75, 0.85, 0, 1)
