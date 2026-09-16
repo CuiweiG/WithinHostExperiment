@@ -332,41 +332,30 @@ plotPairScatter(whe_qc, pairId = "pair_1")
 plotQCDashboard(whe_qc)
 ```
 
-# Validation
+# Reporting summaries
 
-## Plausibility checks
+`calcDiversity()` and `quickBottleneck()` give the figures a report on a
+transmission pair usually needs:
 
-The diversity and bottleneck estimates produced by this package
-fall within ranges reported in the literature:
-
-```{r validation}
+```{r reporting-summary}
 div <- calcDiversity(whe_qc, genomeLength = 1000L)
-cat("Shannon entropy:", round(div$shannon[1], 2), "\n")
-cat("Nucleotide diversity (pi):", format(div$pi[1], digits = 3), "\n")
-cat("Richness:", div$richness[1], "iSNV sites\n")
+cat("Shannon entropy:", round(div$shannon[1], 2), "
+")
+cat("Nucleotide diversity (pi):", format(div$pi[1], digits = 3), "
+")
+cat("Richness:", div$richness[1], "iSNV sites
+")
 
 nb <- quickBottleneck(whe_qc, pairId = "pair_1", maxNb = 50L)
-cat("Bottleneck Nb:", nb$Nb, "(95% CI:", nb$ci[1], "-", nb$ci[2], ")\n")
+cat("Bottleneck Nb:", nb$Nb, "(95% CI:", nb$ci[1], "-", nb$ci[2], ")
+")
 ```
 
-These values are consistent with published within-host pathogen
-diversity studies, where Shannon entropy typically ranges from 0 to
-~10 and tight transmission bottlenecks (Nb = 1-10) are commonly
-reported for respiratory viruses.
-
-## Comparison to existing tools
-
-| Feature | WithinHostExperiment | deepSNV | ViralBottleneck | QSutils |
-|---------|:---:|:---:|:---:|:---:|
-| Bioconductor SE-based container | Yes | No | No | No |
-| Multi-caller import (iVar/LoFreq/Freebayes) | Yes | N/A | N/A | N/A |
-| Replicate-aware QC | Yes | No | No | No |
-| Uncertainty-preserving (flag, don't delete) | Yes | No | N/A | No |
-| Primer site filtering | Yes | No | No | No |
-| Diversity indices | Yes | No | No | Yes (haplotype-level) |
-| Bottleneck estimation | Lightweight MLE | No | Yes (6 methods) | No |
-| VRanges coercion | Yes | N/A | No | No |
-| Compatible export for ViralBottleneck | Yes | No | N/A | No |
+The example files describe a synthetic 1,000-base segment, so these numbers
+show the form of the output and are not evidence that the estimators are
+accurate. `validateDiversity()`, used below, compares an estimate with the
+package's own plausibility range for a pathogen: a sanity check, not a
+validation.
 
 # Case study: SARS-CoV-2 transmission pair
 
