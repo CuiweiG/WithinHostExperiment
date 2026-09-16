@@ -42,8 +42,10 @@ variant frequencies and multiplies every bin by
 the observable fraction of the frequency range. It therefore
 rescales the spectrum without changing its shape. The
 \code{"binomial"} method uses the stored depth to compute
-\eqn{P(\mathrm{detect} | \nu, n) = P(\mathrm{Alt} \ge k_{\min} | n, \nu)}{P(detect|freq,depth)}
-where \eqn{k_{\min} = \lceil n \times \mathrm{threshold} \rceil}{k_min = ceil(n*threshold)},
+\eqn{P(\mathrm{detect} | \nu, n) =
+  P(\mathrm{Alt} \ge k_{\min} | n, \nu)}{P(detect|freq,depth)}
+where \eqn{k_{\min} =
+  \lceil n \times \mathrm{threshold} \rceil}{k_min = ceil(n*threshold)},
 and reweights each bin by the inverse of its detectability.
 Detectability is floored at 0.01, so a bin is inflated at most
 one hundredfold.

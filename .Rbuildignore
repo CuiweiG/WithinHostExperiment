@@ -14,7 +14,6 @@
 ^inst/scripts/generate_readme_figures\.R$
 ^inst/scripts/README_template\.md$
 ^inst/scripts/fill_readme\.R$
-^inst/scripts/prepare_lauring_data\.R$
 ^inst/scripts/prepare_farjo_metadata\.R$
 ^inst/scripts/real_data/farjo_longitudinal$
 ^inst/scripts/real_data/sars2_NC045512\.gff3$

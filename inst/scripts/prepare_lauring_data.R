@@ -4,17 +4,26 @@
 ## Paper: Bendall et al. 2023 Nature Communications 14:272
 ##
 ## This script converts the merged replicate format into
-## per-sample iVar-style TSV files for WithinHostExperiment.
+## per-sample iVar-style TSV files for WithinHostExperiment, and copies
+## the four files of household HH6 into inst/extdata, which is the copy
+## that ships in the package.
+##
+## Run from the package root of a clone. No network access is needed,
+## but the two input files it reads from inst/scripts/real_data are
+## kept out of the built tarball by .Rbuildignore, so they are
+## available only in a clone of the repository.
 
 datadir <- "inst/scripts/real_data"
+extdir <- "inst/extdata"
 vars <- read.delim(file.path(datadir, "all_variants_filtered.tsv"),
                     stringsAsFactors = FALSE, quote = "\"")
 pairs <- read.csv(file.path(datadir, "Transmission_pairs.csv"),
                    stringsAsFactors = FALSE)
 
-## Select household HH6 (MHM1143 <-> MHM1184) - has 4 shared
-## variants, real replicates, genuine transmission pair
-## from a published Nature Communications study.
+## Select household HH6 (MHM1143 -> MHM1184): a genuine transmission
+## pair from a published Nature Communications study, with duplicate
+## sequencing of each sample. The pair carries four iSNVs in total,
+## two in each host, none of them at a shared position.
 pair_info <- pairs[pairs$pair_id == "HH6_A", ]
 donor_id <- pair_info$sample[pair_info$Transmission_indiv == "A"]
 recip_id <- pair_info$sample[pair_info$Transmission_indiv == "B"]
@@ -89,6 +98,20 @@ write_ivar_tsv <- function(sample_id, vars_df, outdir, suffix = "") {
 ## Write per-sample TSV files
 for (s in all_samples) {
     write_ivar_tsv(s, vars, datadir)
+}
+
+## Copy the HH6 pair into inst/extdata. These four files are the
+## package's real example data: the vignette and the examples read
+## them with system.file(). The HH17 files stay in real_data, which
+## does not ship.
+if (!dir.exists(extdir)) dir.create(extdir, recursive = TRUE)
+hh6_files <- paste0(rep(c(donor_id, recip_id), each = 2),
+                    c("_rep1.tsv", "_rep2.tsv"))
+for (f in hh6_files) {
+    if (!file.copy(file.path(datadir, f), file.path(extdir, f),
+                   overwrite = TRUE))
+        stop("Failed to copy ", f, " into ", extdir, ".")
+    cat("  Copied to", extdir, ":", f, "\n")
 }
 
 ## Summary

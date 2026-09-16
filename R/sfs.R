@@ -268,8 +268,10 @@ buildSFSList <- function(whe, nBins = 20L, fold = TRUE,
 #' the observable fraction of the frequency range. It therefore
 #' rescales the spectrum without changing its shape. The
 #' \code{"binomial"} method uses the stored depth to compute
-#' \eqn{P(\mathrm{detect} | \nu, n) = P(\mathrm{Alt} \ge k_{\min} | n, \nu)}{P(detect|freq,depth)}
-#' where \eqn{k_{\min} = \lceil n \times \mathrm{threshold} \rceil}{k_min = ceil(n*threshold)},
+#' \eqn{P(\mathrm{detect} | \nu, n) =
+#'   P(\mathrm{Alt} \ge k_{\min} | n, \nu)}{P(detect|freq,depth)}
+#' where \eqn{k_{\min} =
+#'   \lceil n \times \mathrm{threshold} \rceil}{k_min = ceil(n*threshold)},
 #' and reweights each bin by the inverse of its detectability.
 #' Detectability is floored at 0.01, so a bin is inflated at most
 #' one hundredfold.
@@ -351,7 +353,8 @@ correctSFSBias <- function(sfs, method = c("truncation", "binomial")) {
 #' derived variants, which can indicate positive selection or
 #' genetic hitchhiking (Fay and Wu 2000). It is defined as:
 #' \deqn{H = \hat{\pi} - \hat{\theta}_H}
-#' where \eqn{\hat{\theta}_H = \frac{2}{n(n-1)} \sum_i i^2 \xi_i}{theta_H = 2/(n(n-1)) * sum(i^2 * xi_i)}
+#' where \eqn{\hat{\theta}_H =
+#'   \frac{2}{n(n-1)} \sum_i i^2 \xi_i}{theta_H = 2/(n(n-1)) * sum(i^2 * xi_i)}
 #' and \eqn{\xi_i} is the count of sites with \eqn{i} derived
 #' alleles. A negative H indicates an excess of high-frequency
 #' variants.

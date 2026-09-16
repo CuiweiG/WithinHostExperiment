@@ -39,7 +39,8 @@ derive all statistics from it.
 derived variants, which can indicate positive selection or
 genetic hitchhiking (Fay and Wu 2000). It is defined as:
 \deqn{H = \hat{\pi} - \hat{\theta}_H}
-where \eqn{\hat{\theta}_H = \frac{2}{n(n-1)} \sum_i i^2 \xi_i}{theta_H = 2/(n(n-1)) * sum(i^2 * xi_i)}
+where \eqn{\hat{\theta}_H =
+  \frac{2}{n(n-1)} \sum_i i^2 \xi_i}{theta_H = 2/(n(n-1)) * sum(i^2 * xi_i)}
 and \eqn{\xi_i} is the count of sites with \eqn{i} derived
 alleles. A negative H indicates an excess of high-frequency
 variants.

@@ -61,9 +61,9 @@ variant callers and downstream analysis tools:
 
 | Tool | Role | Relationship |
 |------|------|-------------|
-| iVar, LoFreq, Freebayes | Variant calling | Upstream -- we import their output |
+| iVar, LoFreq, Freebayes | Variant calling | Upstream -- we read output |
 | deepSNV | Low-frequency variant detection | Upstream -- complementary |
-| ViralBottleneck | Bottleneck estimation | Downstream -- we export to it |
+| ViralBottleneck | Bottleneck estimation | Downstream -- simplified frame |
 | QSutils | Quasispecies diversity | Parallel -- different granularity |
 
 ## Why Bioconductor?
@@ -277,8 +277,9 @@ cat("Nb MLE:", nb$Nb, "\n")
 cat("95% CI: [", nb$ci[1], ",", nb$ci[2], "]\n")
 ```
 
-For comprehensive analysis with multiple methods, export to a
-compatible downstream tool such as `ViralBottleneck`:
+`asViralBottleneckInput()` writes the donor and recipient frequencies
+of a pair into one frame, which is the input a beta-binomial estimator
+needs:
 
 ```{r vb-bridge}
 vb_input <- asViralBottleneckInput(whe_qc, pairId = "pair_1")
@@ -308,15 +309,12 @@ vr
 
 ## Export for downstream bottleneck tools
 
-For comprehensive transmission bottleneck analysis using multiple
-methods, export the standardised input frame compatible with
-`ViralBottleneck` and similar tools:
-
-```{r vb-export}
-vb_input <- asViralBottleneckInput(whe_qc, pairId = "pair_1")
-head(vb_input)
-# Compatible with: ViralBottleneck::bottleneck_size(vb_input, ...)
-```
+The frame shown above under "Quick bottleneck estimation" carries the
+positions and the two frequencies, which is what a beta-binomial
+estimator takes. `ViralBottleneck` itself builds its objects from
+per-base read counts through `CreateTransmissionObject()`, so prepare
+those from the `altCount` and `refCount` assays rather than from this
+frame.
 
 # Visualisation
 
@@ -591,7 +589,9 @@ calcCallerConcordance(list(ivar = whe1, lofreq = whe2))
 
 ## Exact bottleneck estimation
 
-Three methods beyond the approximate `quickBottleneck()`:
+`exactBottleneck()` offers three estimators beyond the approximate
+`quickBottleneck()`: `"exact_bb"`, `"wright_fisher"` and
+`"presence_absence"`. The presence-absence estimator is shown here.
 
 ```{r exact-bottleneck}
 nb_pa <- exactBottleneck(whe_qc, pairId = "pair_1",

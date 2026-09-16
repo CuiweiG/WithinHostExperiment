@@ -29,9 +29,9 @@
 A \code{\link{WithinHostExperiment}}.
 }
 \description{
-Extends \code{\link[SummarizedExperiment]{RangedSummarizedExperiment-class}} to hold
-intra-host single nucleotide variant (iSNV) data with integrated
-quality control audit logging.
+Extends \code{\link[SummarizedExperiment]{RangedSummarizedExperiment-class}}
+to hold intra-host single nucleotide variant (iSNV) data with
+integrated quality control audit logging.
 
 Subsetting preserves the \code{qcLog} and \code{qcFilters} slots.
 These slots are experiment-level metadata (not row/column-dependent)

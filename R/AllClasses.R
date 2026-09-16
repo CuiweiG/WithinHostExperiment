@@ -207,9 +207,9 @@ NULL
 
 #' WithinHostExperiment: Container for within-host pathogen variant data
 #'
-#' Extends \code{\link[SummarizedExperiment]{RangedSummarizedExperiment-class}} to hold
-#' intra-host single nucleotide variant (iSNV) data with integrated
-#' quality control audit logging.
+#' Extends \code{\link[SummarizedExperiment]{RangedSummarizedExperiment-class}}
+#' to hold intra-host single nucleotide variant (iSNV) data with
+#' integrated quality control audit logging.
 #'
 #' @section Standard assays:
 #' \describe{

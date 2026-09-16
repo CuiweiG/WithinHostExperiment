@@ -6,7 +6,8 @@
 \title{WithinHostExperiment: Within-Host Pathogen Variant QC, Diversity,
 and Bottleneck}
 \description{
-Provides a \code{\link[SummarizedExperiment]{RangedSummarizedExperiment-class}}-based
+Provides a
+\code{\link[SummarizedExperiment]{RangedSummarizedExperiment-class}}-based
 container and workflow functions for analysing intra-host single
 nucleotide variants (iSNV) from pathogen deep sequencing data.
 }
