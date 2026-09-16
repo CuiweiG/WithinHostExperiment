@@ -14,9 +14,9 @@ metadata. Must contain \code{sample_id}. May also contain
 \code{host_id}, \code{role}, \code{pair_id},
 \code{replicate_group}, \code{replicate_id}, etc.}
 
-\item{caller}{Character scalar. Which caller produced the VCF:
+\item{caller}{Character scalar. Which field layout the VCF uses:
 \code{"ivar"}, \code{"lofreq"}, \code{"auto"} (default),
-or \code{"generic"}.}
+or \code{"generic"}. See Details for what \code{"ivar"} means.}
 
 \item{genome}{Character scalar (optional). Path to reference FASTA
 (stored in metadata, not currently used for annotation).}
@@ -25,14 +25,22 @@ or \code{"generic"}.}
 A \code{\link{WithinHostExperiment}}.
 }
 \description{
-Reads one or more VCF files produced by variant callers (iVar,
-LoFreq, Freebayes, or generic) and constructs a
+Reads one or more VCF files produced by variant callers (LoFreq,
+Freebayes, or generic) and constructs a
 \code{\link{WithinHostExperiment}}.
 }
 \details{
 Each VCF file corresponds to one sample. The \code{colData}
 argument provides sample metadata and must contain a
 \code{sample_id} column whose length matches the number of files.
+
+\code{caller = "ivar"} refers to a VCF carrying iVar's per-sample
+fields (\code{REF_DP}, \code{ALT_DP}, \code{ALT_FREQ},
+\code{ALT_QUAL}). \code{ivar variants} itself writes a TSV, not a
+VCF, so such files come from a converter, for instance
+\code{ivar_variants_to_vcf.py} in the nf-core/viralrecon pipeline.
+An iVar TSV is read directly by
+\code{\link{readWithinHostTable}(format = "ivar")}.
 
 
 Records with several alternative alleles are split into one site per
