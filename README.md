@@ -47,7 +47,7 @@ All figures use real, publicly available data:
 |---------|-----------|------|
 | **Bendall *et al.* (2023)** *Nat. Commun.* 14:272 | 159 iSNVs, 83 samples, duplicate sequencing, 132 transmission pairs | QC, diversity, transmission, population genetics (Figs 1--3, 5--6) |
 | **Farjo *et al.* (2024)** *J. Virol.* 98:e01618-23 | Participant 432870: 9 daily saliva samples; the 6 that the study analysed (mean coverage of at least 1,000x; days 1, 2, 3, 4, 7, 8) are used | Longitudinal within-host evolution (Fig 4) |
-| **NCBI RefSeq** NC_045512.2 GFF3 | SARS-CoV-2 gene annotation | `annotateFromGFF()` demo (Figs 3b, 5b) |
+| **NCBI RefSeq** NC_045512.2 | SARS-CoV-2 gene annotation (GFF3) and reference sequence (FASTA) | `annotateFromGFF()` and the codon translation behind `dndsWithinHost()` (Figs 3b, 5b) |
 
 All figures were generated with R version 4.6.1 by
 `inst/scripts/generate_readme_figures.R`, which also writes every number
@@ -96,7 +96,9 @@ of the two replicates.
 > variants: 18 of the 53 discordant calls sit below 10%
 > (34%), against 62 of the 106 concordant ones
 > (58%), so replicates disagree more often at intermediate
-> frequencies than at the bottom of the range.
+> frequencies than at the bottom of the range. Part of that is the rule
+> itself: a fixed tolerance in percentage points removes more calls where
+> the sampling spread of the difference is wider, as Figure 6b sets out.
 
 ---
 
@@ -313,6 +315,9 @@ Data files in `inst/scripts/real_data/` (GitHub only, not in installed package):
 | `Transmission_pairs.csv` | Bendall *et al.* 2023 | Household transmission pair metadata |
 | `farjo_longitudinal/` | Farjo *et al.* 2024 | Daily saliva iVar TSVs for participant 432870, with `samples_432870.csv` (dates, coverage and study inclusion, built by `inst/scripts/prepare_farjo_metadata.R` from github.com/BROOKELAB/SARS-CoV-2-within-host-evolution) |
 | `sars2_NC045512.gff3` | NCBI RefSeq | SARS-CoV-2 gene annotation (NC_045512.2) |
+| `sars2_NC045512.fasta` | NCBI RefSeq | Reference sequence (NC_045512.2), read by `annotateCodonChange()` for Figure 5b |
+| `MHM*_rep*.tsv`, `all_variants_filtered_unmerged.tsv` | Bendall *et al.* 2023 | Per-sample iVar tables and the pre-merge call table, kept as provenance for the merged file above; the figure script reads neither |
+| `farjo_longitudinal/user_432870.csv` | Farjo *et al.* 2024 | The study's own per-SNP summary for this participant, kept for comparison; not read by the figure script |
 
 ## Key references
 

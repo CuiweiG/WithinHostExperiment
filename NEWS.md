@@ -46,9 +46,11 @@
 * `WithinHostExperiment` S4 class extending
   `RangedSummarizedExperiment` for within-host pathogen iSNV data,
   with `setValidity` enforcing structural invariants.
-* Multi-caller import: `readWithinHost()` supports iVar, LoFreq,
-  Freebayes, and generic VCF formats with auto-detection.
-  `readWithinHostTable()` handles iVar TSV and generic CSV.
+* Multi-caller import: `readWithinHost()` reads VCFs in the LoFreq,
+  Freebayes, generic and iVar-style field layouts with auto-detection
+  (`ivar variants` writes a TSV, so an iVar-style VCF comes from a
+  converter). `readWithinHostTable()` handles the iVar TSV directly,
+  and generic CSV.
 * Replicate-aware QC: `flagISNV()` applies configurable quality
   filters without removing data. `flagReplicateDiscordance()`
   identifies discordant technical replicates with full provenance
