@@ -36,7 +36,7 @@ Suggests:
     BiocCheck,
     covr
 biocViews: Genetics, VariantAnnotation, Sequencing, GenomicVariation,
-    QualityControl, VariantDetection, DataImport
+    QualityControl, VariantDetection, DataImport, LongRead
 URL: https://github.com/CuiweiG/WithinHostExperiment
 BugReports: https://github.com/CuiweiG/WithinHostExperiment/issues
 Encoding: UTF-8

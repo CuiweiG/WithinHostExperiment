@@ -69,7 +69,8 @@ Estimates transmission bottleneck size using one of three methods:
     prefer \code{exact_bb} or \code{presence_absence} for
     inference.}
   \item{\code{presence_absence}}{Presence-absence likelihood using
-    \eqn{P(\mathrm{detect} | Nb, \nu) = 1 - (1-\nu)^{Nb}}{P(detect|Nb,freq) = 1-(1-freq)^Nb}.}
+    \eqn{P(\mathrm{detect} | Nb, \nu) =
+      1 - (1-\nu)^{Nb}}{P(detect|Nb,freq) = 1-(1-freq)^Nb}.}
 }
 }
 \examples{
