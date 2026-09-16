@@ -1,12 +1,10 @@
 #!/usr/bin/env Rscript
-# Generate example_whe.rda for the data/ directory
-# Run from package root: Rscript inst/scripts/save_example_data.R
-
-userlib <- file.path(Sys.getenv("USERPROFILE"), "R", "library")
-if (dir.exists(userlib)) .libPaths(c(userlib, .libPaths()))
+## Generates data/example_whe.rda from the three synthetic VCFs in
+## inst/extdata. Run from the package root:
+##   Rscript inst/scripts/save_example_data.R
 
 library(S4Vectors)
-devtools::load_all(".")
+pkgload::load_all(".", quiet = TRUE)
 
 vcf1 <- "inst/extdata/test_donor.vcf"
 vcf2 <- "inst/extdata/test_recipient.vcf"

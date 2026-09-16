@@ -5,21 +5,24 @@
 \alias{example_whe}
 \title{Example WithinHostExperiment dataset}
 \format{
-A \code{\link{WithinHostExperiment}} with 20 variant sites
+A \code{\link{WithinHostExperiment}} with 28 variant sites
   and 3 samples. Assays: altFreq, totalDepth, refCount, altCount,
   qcPass.
 }
 \source{
-Synthetically generated for package examples and testing.
+Synthetic. Built by \code{inst/scripts/save_example_data.R} from
+  \code{test_donor.vcf}, \code{test_recipient.vcf} and
+  \code{test_independent.vcf} in \code{inst/extdata}, read with
+  \code{\link{readWithinHost}}.
 }
 \usage{
 data(example_whe)
 }
 \description{
 A small synthetic \code{\link{WithinHostExperiment}} with 3 samples
-(donor, recipient, independent) containing iSNV data on a 1000bp
-viral genome segment. The donor and recipient form a transmission
-pair (pair_id = "pair_1").
+(donor, recipient, independent) containing iSNV data at positions 33 to
+945 of a synthetic genome segment. The donor and recipient form a
+transmission pair (pair_id = "pair_1").
 }
 \examples{
 data(example_whe)
