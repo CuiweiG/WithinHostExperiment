@@ -10,7 +10,9 @@ fusFs(S, n, theta_pi)
 \item{S}{Integer scalar. Number of segregating sites (alleles
 minus 1).}
 
-\item{n}{Numeric scalar. Sample size (use mean read depth).}
+\item{n}{Numeric scalar. Sample size. As in \code{\link{tajimaD}},
+do \strong{not} use raw read depth: use an effective sample size
+that reflects the number of independently sampled genomes.}
 
 \item{theta_pi}{Numeric scalar. Theta estimated from
 nucleotide diversity (\eqn{\hat{\pi} \times L}).}

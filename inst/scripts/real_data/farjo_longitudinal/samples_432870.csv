@@ -1,0 +1,10 @@
+"sample","isolation_source","collection_date","mean_coverage","day_of_infection","analysed_by_study"
+"2264562","saliva",2020-12-08,60268.93,1,TRUE
+"2271129","saliva",2020-12-09,57170.15,2,TRUE
+"2278138","saliva",2020-12-10,18729.21,3,TRUE
+"2285643","saliva",2020-12-11,5387.34,4,TRUE
+"2291489","saliva",2020-12-12,90.35,5,FALSE
+"2294271","saliva",2020-12-13,13.51,6,FALSE
+"2301664","saliva",2020-12-14,3242.02,7,TRUE
+"2309013","saliva",2020-12-15,12386.37,8,TRUE
+"2315984","saliva",2020-12-16,520.6,9,FALSE

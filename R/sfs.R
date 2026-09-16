@@ -472,9 +472,12 @@ neutralityFromSFS <- function(sfs, n = NULL) {
 #' The test compares raw variant counts, so apply it to
 #' uncorrected spectra: the counts of a bias-corrected spectrum are
 #' rescaled and no longer multinomial. Bins where both spectra are
-#' empty are dropped, and the chi-squared approximation is
-#' unreliable when the remaining bins hold few variants; its
-#' warnings are suppressed, so check the bin counts.
+#' empty are dropped, and when only two bins remain
+#' \code{\link[stats]{chisq.test}} applies Yates' continuity
+#' correction. The chi-squared approximation is unreliable
+#' when an expected count falls below 5; instead of a warning, that
+#' condition is reported in \code{chisq_approx_ok}, and the p-value
+#' should then be read with caution.
 #'
 #' @param sfs1 A \code{\link{WithinHostSFS}} object.
 #' @param sfs2 A \code{\link{WithinHostSFS}} object (same binning).
@@ -484,6 +487,14 @@ neutralityFromSFS <- function(sfs, n = NULL) {
 #'     \item{chisq_stat}{Chi-squared statistic.}
 #'     \item{chisq_p}{Chi-squared p-value.}
 #'     \item{df}{Degrees of freedom.}
+#'     \item{min_expected}{Smallest expected count under homogeneity,
+#'       or \code{NA} when fewer than two bins remain and no test is
+#'       run.}
+#'     \item{chisq_approx_ok}{\code{TRUE} when every expected count
+#'       is at least 5, the condition under which
+#'       \code{\link[stats]{chisq.test}} does not warn; \code{NA}
+#'       alongside the other \code{NA} diagnostics when no test is
+#'       run.}
 #'     \item{n1}{Total variants in sfs1.}
 #'     \item{n2}{Total variants in sfs2.}
 #'     \item{proportions1}{Proportion in each bin, sfs1.}
@@ -512,22 +523,37 @@ compareSFS <- function(sfs1, sfs2) {
     keep <- (c1 + c2) > 0
     if (sum(keep) < 2L) {
         return(list(chisq_stat = NA_real_, chisq_p = NA_real_,
-                    df = NA_integer_, n1 = n1, n2 = n2,
+                    df = NA_integer_, min_expected = NA_real_,
+                    chisq_approx_ok = NA, n1 = n1, n2 = n2,
                     proportions1 = c1 / max(n1, 1),
                     proportions2 = c2 / max(n2, 1)))
     }
 
     mat <- rbind(c1[keep], c2[keep])
-    test <- suppressWarnings(chisq.test(mat))
+    min_expected <- min(outer(rowSums(mat), colSums(mat)) / sum(mat))
+    ## The small-expected-count warning is returned as chisq_approx_ok;
+    ## any other warning from chisq.test() still reaches the caller.
+    approx_warning <- gettext(
+        "Chi-squared approximation may be incorrect", domain = "R-stats"
+    )
+    test <- withCallingHandlers(
+        chisq.test(mat),
+        warning = function(w) {
+            if (identical(conditionMessage(w), approx_warning))
+                invokeRestart("muffleWarning")
+        }
+    )
 
     list(
-        chisq_stat   = unname(test$statistic),
-        chisq_p      = test$p.value,
-        df           = unname(test$parameter),
-        n1           = n1,
-        n2           = n2,
-        proportions1 = c1 / max(n1, 1),
-        proportions2 = c2 / max(n2, 1)
+        chisq_stat      = unname(test$statistic),
+        chisq_p         = test$p.value,
+        df              = unname(test$parameter),
+        min_expected    = min_expected,
+        chisq_approx_ok = min_expected >= 5,
+        n1              = n1,
+        n2              = n2,
+        proportions1    = c1 / max(n1, 1),
+        proportions2    = c2 / max(n2, 1)
     )
 }
 

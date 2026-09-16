@@ -26,7 +26,11 @@ calcDiversity(x, ...)
 (default: all six).}
 
 \item{genomeLength}{Integer (optional). Required for \code{"pi"}
-and \code{"watterson"}.}
+and \code{"watterson"}. For \code{"watterson"}, the sample's
+median read depth is passed as the sample size \eqn{n}, which
+for the reasons given in \code{\link{tajimaD}} makes
+\eqn{\theta_W} small; \code{\link{calcNeutralityTests}} caps
+\eqn{n} instead, so the two need not agree.}
 
 \item{usePassedOnly}{Logical. If TRUE (default), only use variants
 where \code{qcPass == TRUE}.}

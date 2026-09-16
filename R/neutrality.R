@@ -152,7 +152,9 @@ tajimaD <- function(S, n, pi_hat, genomeLength) {
 #'
 #' @param S Integer scalar. Number of segregating sites (alleles
 #'   minus 1).
-#' @param n Numeric scalar. Sample size (use mean read depth).
+#' @param n Numeric scalar. Sample size. As in \code{\link{tajimaD}},
+#'   do \strong{not} use raw read depth: use an effective sample size
+#'   that reflects the number of independently sampled genomes.
 #' @param theta_pi Numeric scalar. Theta estimated from
 #'   nucleotide diversity (\eqn{\hat{\pi} \times L}).
 #'

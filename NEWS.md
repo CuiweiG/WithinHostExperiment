@@ -1,7 +1,12 @@
 # WithinHostExperiment 0.99.0
 
-## Corrections from technical review
+## Corrections made before submission
 
+* `compareSFS()` suppressed every warning from `chisq.test()`, so a p-value
+  resting on expected counts below 5 looked as trustworthy as any other. It
+  now returns the smallest expected count and `chisq_approx_ok`, which is
+  `FALSE` in that case, and silences only that one warning; the statistic and
+  p-value are unchanged.
 * `flagTemporalInconsistency()` classified each site with the last host
   processed and flagged transient sites in every sample. Sites are now
   classified within each host and flagged only in the samples of hosts where
@@ -71,8 +76,6 @@
   appear at only one timepoint (likely artefacts) versus persistent
   ones detected across multiple consecutive timepoints. Supports
   configurable `minTimepoints` and `minConsecutive` thresholds.
-  This is a QC dimension unique to longitudinal within-host data
-  that no existing tool automates.
 * **Cross-contamination detection**:
   `detectCrossContamination()` identifies index-hopping signatures
   where a high-frequency variant in one sample appears at
