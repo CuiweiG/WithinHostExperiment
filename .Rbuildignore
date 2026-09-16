@@ -20,3 +20,4 @@
 ^inst/scripts/real_data/farjo_longitudinal$
 ^inst/scripts/real_data/sars2_NC045512\.gff3$
 ^readme_figure_output$
+^inst/(?!(extdata|doc|scripts)$)[^/]+$
