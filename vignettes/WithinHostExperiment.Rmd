@@ -104,7 +104,7 @@ whe
 All core functions take a `WithinHostExperiment` as their first
 argument, making them compatible with R's native pipe:
 
-```{r pipe-workflow}
+```{r pipe-workflow, message=FALSE}
 library(GenomicRanges)
 primers <- GRanges("test_segment", IRanges::IRanges(
     start = c(40, 880), end = c(65, 950)))
@@ -210,6 +210,15 @@ clean <- passedISNV(whe_qc)
 cat("Before:", nrow(whe_qc), "sites\n")
 cat("After passedISNV:", nrow(clean), "sites\n")
 ```
+
+The two tables count different things. `qcLog()` counts cells of the
+site-by-sample matrix, so its 40 cells include those where a sample has no
+call at a site; a filter cannot fail a call that is absent, so those cells
+stay passed. `qcSummary()` counts only the calls each sample made.
+`passedISNV()` keeps a site if any sample passed it: the one flagged call,
+at position 812 in the donor, is absent from the recipient, so the site is
+kept and the row count does not change. The pipe example above, which also
+masks primer sites, is where rows are removed.
 
 ## Replicate-aware QC
 
@@ -319,14 +328,17 @@ frame.
 # Visualisation
 
 ```{r viz-spectrum, fig.width=6, fig.height=4}
+#| fig.cap: "Allele frequency spectrum of the QC-flagged example pair."
 plotFrequencySpectrum(whe_qc)
 ```
 
 ```{r viz-pair, fig.width=5, fig.height=5}
+#| fig.cap: "Donor against recipient allele frequency at each site."
 plotPairScatter(whe_qc, pairId = "pair_1")
 ```
 
 ```{r viz-dashboard, fig.width=8, fig.height=6}
+#| fig.cap: "Four-panel QC dashboard for the example object."
 plotQCDashboard(whe_qc)
 ```
 
@@ -337,16 +349,12 @@ transmission pair usually needs:
 
 ```{r reporting-summary}
 div <- calcDiversity(whe_qc, genomeLength = 1000L)
-cat("Shannon entropy:", round(div$shannon[1], 2), "
-")
-cat("Nucleotide diversity (pi):", format(div$pi[1], digits = 3), "
-")
-cat("Richness:", div$richness[1], "iSNV sites
-")
+cat("Shannon entropy:", round(div$shannon[1], 2), "\n")
+cat("Nucleotide diversity (pi):", format(div$pi[1], digits = 3), "\n")
+cat("Richness:", div$richness[1], "iSNV sites\n")
 
 nb <- quickBottleneck(whe_qc, pairId = "pair_1", maxNb = 50L)
-cat("Bottleneck Nb:", nb$Nb, "(95% CI:", nb$ci[1], "-", nb$ci[2], ")
-")
+cat("Bottleneck Nb:", nb$Nb, "(95% CI:", nb$ci[1], "-", nb$ci[2], ")\n")
 ```
 
 The example files describe a synthetic 1,000-base segment, so these numbers
@@ -359,8 +367,10 @@ validation.
 
 This section demonstrates the complete workflow on real SARS-CoV-2
 iSNV data from Bendall et al. (2023) *Nature Communications* 14:272.
-We analyse household HH6 -- an epidemiologically confirmed
-donor-recipient pair.
+We analyse household HH6 from Bendall *et al.* (2023). The study's pair
+table lists this household in both directions, as `HH6_A` and `HH6_B`, so
+it does not establish who infected whom; the example follows `HH6_A` and
+treats MHM1143 as the donor for illustration.
 
 ```{r case-study-import}
 donor_file <- system.file("extdata", "MHM1143_rep1.tsv",
@@ -461,16 +471,19 @@ nt_hiv <- calcNeutralityTests(whe_hiv, genomeLength = 1000L)
 nt_tb  <- calcNeutralityTests(whe_tb,  genomeLength = 4411532L)
 results <- data.frame(
     pathogen = c("Influenza", "HIV-1", "M. tuberculosis"),
-    S = c(nrow(whe_flu), nrow(whe_hiv), nrow(whe_tb)),
+    n_sites = c(nrow(whe_flu), nrow(whe_hiv), nrow(whe_tb)),
     tajimaD = c(nt_flu$tajimaD, nt_hiv$tajimaD, nt_tb$tajimaD),
     fusFs = c(nt_flu$fusFs, nt_hiv$fusFs, nt_tb$fusFs)
 )
 results
 ```
 
-Negative Tajima's D and Fu's Fs values are expected for within-host
-pathogen populations, consistent with purifying selection and/or
-recent population expansion from a transmission bottleneck.
+These fixtures are synthetic, and the tuberculosis one has only three
+sites, so the signs above carry no biological meaning. In real within-host
+data a negative Tajima's D or Fu's Fs is often read as purifying selection
+or expansion after a bottleneck, and a positive value as balancing
+selection or population structure; either reading needs far more sites
+than these examples hold.
 
 # Advanced features
 
