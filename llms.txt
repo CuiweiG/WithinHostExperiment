@@ -3,6 +3,8 @@
 *Bioconductor Infrastructure for Within-Host Pathogen Variant QC,
 Diversity, and Transmission Bottleneck Workflows*
 
+[![Bioconductor
+release](https://img.shields.io/badge/Bioconductor-release-blue.svg)](https://bioconductor.org/packages/release/bioc/html/WithinHostExperiment.html)
 [![Platforms](https://bioconductor.org/shields/availability/release/WithinHostExperiment.svg)](https://bioconductor.org/packages/WithinHostExperiment/)
 [![Bioconductor devel
 build](https://bioconductor.org/shields/build/devel/bioc/WithinHostExperiment.svg)](https://bioconductor.org/checkResults/devel/bioc-LATEST/WithinHostExperiment/)
@@ -236,7 +238,7 @@ changes](reference/figures/fig6_consensus_validation.png)
 
 ``` r
 
-# After Bioconductor acceptance:
+# From Bioconductor:
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 BiocManager::install("WithinHostExperiment")

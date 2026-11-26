@@ -802,10 +802,10 @@ which threshold did the work, which is rarely the one expected.</p>
 <span><span class="co">#&gt; 4 alt_reads_filter minAltReads          10         0        39</span></span>
 <span><span class="co">#&gt;             timestamp</span></span>
 <span><span class="co">#&gt;           &lt;character&gt;</span></span>
-<span><span class="co">#&gt; 1 2026-11-26T12:51:57</span></span>
-<span><span class="co">#&gt; 2 2026-11-26T12:51:57</span></span>
-<span><span class="co">#&gt; 3 2026-11-26T12:51:57</span></span>
-<span><span class="co">#&gt; 4 2026-11-26T12:51:57</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 2026-11-26T14:40:01</span></span>
+<span><span class="co">#&gt; 2 2026-11-26T14:40:01</span></span>
+<span><span class="co">#&gt; 3 2026-11-26T14:40:01</span></span>
+<span><span class="co">#&gt; 4 2026-11-26T14:40:01</span></span></code></pre></div>
 <p>Four steps were recorded, one per applicable threshold, with strand
 bias absent because this object has no per-strand count assays: no
 import function reads them, so the step runs only when they are added to
@@ -949,8 +949,8 @@ discordance is a property of the site rather than of one replicate.</p>
 <span><span class="co">#&gt; 2 replicate_discordance requireBothDetected        TRUE         0        26</span></span>
 <span><span class="co">#&gt;             timestamp</span></span>
 <span><span class="co">#&gt;           &lt;character&gt;</span></span>
-<span><span class="co">#&gt; 1 2026-11-26T12:51:58</span></span>
-<span><span class="co">#&gt; 2 2026-11-26T12:51:58</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 2026-11-26T14:40:01</span></span>
+<span><span class="co">#&gt; 2 2026-11-26T14:40:01</span></span></code></pre></div>
 <p>Two rows are recorded, one per argument, but only the first counts
 anything: the function makes a single pass that applies both criteria
 together and writes the whole count against <code>freqTolerance</code>,
@@ -989,12 +989,12 @@ functions still appear only in <code>qcLog</code>.</p>
 <span><span class="co">#&gt; 6 replicate_discordance requireBothDetected        TRUE         0        24</span></span>
 <span><span class="co">#&gt;             timestamp</span></span>
 <span><span class="co">#&gt;           &lt;character&gt;</span></span>
-<span><span class="co">#&gt; 1 2026-11-26T12:51:58</span></span>
-<span><span class="co">#&gt; 2 2026-11-26T12:51:58</span></span>
-<span><span class="co">#&gt; 3 2026-11-26T12:51:58</span></span>
-<span><span class="co">#&gt; 4 2026-11-26T12:51:58</span></span>
-<span><span class="co">#&gt; 5 2026-11-26T12:51:58</span></span>
-<span><span class="co">#&gt; 6 2026-11-26T12:51:58</span></span>
+<span><span class="co">#&gt; 1 2026-11-26T14:40:01</span></span>
+<span><span class="co">#&gt; 2 2026-11-26T14:40:01</span></span>
+<span><span class="co">#&gt; 3 2026-11-26T14:40:01</span></span>
+<span><span class="co">#&gt; 4 2026-11-26T14:40:01</span></span>
+<span><span class="co">#&gt; 5 2026-11-26T14:40:01</span></span>
+<span><span class="co">#&gt; 6 2026-11-26T14:40:01</span></span>
 <span><span class="fu"><a href="../reference/WHE-accessors.html">qcFilters</a></span><span class="op">(</span><span class="va">rep_qc</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="co">#&gt; ISNVFilter object</span></span>
 <span><span class="co">#&gt;   minDepth:      200 </span></span>
@@ -1041,11 +1041,11 @@ every site inside them, in every sample.</p>
 <span><span class="co">#&gt; 5    primer_filter n_primer_regions           2         6        33</span></span>
 <span><span class="co">#&gt;             timestamp</span></span>
 <span><span class="co">#&gt;           &lt;character&gt;</span></span>
-<span><span class="co">#&gt; 1 2026-11-26T12:51:57</span></span>
-<span><span class="co">#&gt; 2 2026-11-26T12:51:57</span></span>
-<span><span class="co">#&gt; 3 2026-11-26T12:51:57</span></span>
-<span><span class="co">#&gt; 4 2026-11-26T12:51:57</span></span>
-<span><span class="co">#&gt; 5 2026-11-26T12:51:58</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 2026-11-26T14:40:01</span></span>
+<span><span class="co">#&gt; 2 2026-11-26T14:40:01</span></span>
+<span><span class="co">#&gt; 3 2026-11-26T14:40:01</span></span>
+<span><span class="co">#&gt; 4 2026-11-26T14:40:01</span></span>
+<span><span class="co">#&gt; 5 2026-11-26T14:40:02</span></span></code></pre></div>
 <p>The log now has five rows: the four from <code><a href="../reference/flagISNV.html">flagISNV()</a></code> and
 one <code>primer_filter</code> step recording that two primer regions
 flagged 6 further cells, leaving 33 of the 40 cells passing. Because the
@@ -2177,7 +2177,7 @@ transient.</p>
 <span><span class="co">#&gt; 1 temporal_consistency minTimepoints           2         3         6</span></span>
 <span><span class="co">#&gt;             timestamp</span></span>
 <span><span class="co">#&gt;           &lt;character&gt;</span></span>
-<span><span class="co">#&gt; 1 2026-11-26T12:52:04</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 2026-11-26T14:40:06</span></span></code></pre></div>
 <p>The classification reads persistent, transient, persistent: the
 second site was detected only at the first timepoint, while the first
 and third were seen at two or three. The log then records one step that

@@ -114,5 +114,5 @@ qcLog(whe)
 #> 1 strand_bias_sci_filter      maxSCI         1.5         1         2
 #>             timestamp
 #>           <character>
-#> 1 2026-11-26T12:51:32
+#> 1 2026-11-26T14:39:41
 ```

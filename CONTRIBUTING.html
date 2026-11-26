@@ -55,7 +55,7 @@
 <code>RELEASE_3_24</code>, after <code>devel</code>
 </td>
 <td>1.0.z (even y)</td>
-</tr></tbody></table><ul><li>GitHub <code>main</code> is Bioconductor <code>devel</code>. Bioconductor only builds <code>devel</code> and <code>RELEASE_*</code> branches, so every push to Bioconductor names the target explicitly: <code>main:devel</code>.</li>
+</tr></tbody></table><ul><li>GitHub <code>main</code> has the same code as Bioconductor <code>devel</code> but only our own commits; see Pushing.</li>
 <li>
 <code>RELEASE_3_24</code> takes bug fixes and documentation corrections only. New features and changed defaults wait on <code>main</code> for Bioconductor 3.25 (spring 2027).</li>
 <li>A bug fix goes into <code>main</code> first and is then cherry-picked to <code>RELEASE_3_24</code>. Each branch gets its own version bump.</li>
@@ -64,7 +64,7 @@
 <div class="section level2">
 <h2 id="version-numbers">Version numbers<a class="anchor" aria-label="anchor" href="#version-numbers"></a></h2>
 <p>Bioconductor uses x.y.z version numbers (<a href="https://contributions.bioconductor.org/versionnum.html" class="external-link uri">https://contributions.bioconductor.org/versionnum.html</a>):</p>
-<ul><li>y is odd on <code>devel</code> (1.1.z) and even on the release branch (1.0.z). The Bioconductor team changes y at each release; do not change x or y yourself.</li>
+<ul><li>y is odd on <code>devel</code> (1.1.z) and even on the release branch (1.0.z). The Bioconductor team changes y on <code>devel</code> at each release; make the same change on <code>main</code> in a commit of our own. Do not change x or y otherwise.</li>
 <li>Bump z in every commit that should reach users: 1.1.0 to 1.1.1 on <code>devel</code>, 1.0.0 to 1.0.1 on <code>RELEASE_3_24</code>. A pushed commit without a version bump is built, but not propagated: <code><a href="https://bioconductor.github.io/BiocManager/reference/install.html" class="external-link">BiocManager::install()</a></code> keeps serving the previous version.</li>
 <li>Commits that only touch files left out of the package by <code>.Rbuildignore</code> (for example <code>.github/</code>) do not need a bump.</li>
 <li>Builds run once a day and take about 24 hours, so a push appears on the build report (<a href="https://bioconductor.org/checkResults/" class="external-link uri">https://bioconductor.org/checkResults/</a>) one or two days later. It reaches users once a build with the new version finishes without errors.</li>
@@ -82,23 +82,22 @@
 </div>
 <div class="section level2">
 <h2 id="pushing">Pushing<a class="anchor" aria-label="anchor" href="#pushing"></a></h2>
-<p>Before committing, bring <code>main</code> up to date with Bioconductor. The Bioconductor team commits to <code>devel</code> too, for example the version bumps at each release:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">git</span> checkout main</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">git</span> fetch upstream</span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="fu">git</span> merge <span class="at">--ff-only</span> upstream/devel</span></code></pre></div>
-<p>Devel (GitHub <code>main</code> to Bioconductor <code>devel</code>):</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">git</span> push upstream main:devel</span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">git</span> push origin main</span></code></pre></div>
-<p>Release (the same name on both sides):</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">git</span> fetch upstream</span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="fu">git</span> checkout <span class="at">-b</span> RELEASE_3_24 upstream/RELEASE_3_24   <span class="co"># first time only</span></span>
-<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="fu">git</span> cherry-pick <span class="op">&lt;</span>commit on main<span class="op">&gt;</span></span>
-<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co"># bump z in DESCRIPTION (1.0.0 to 1.0.1) and commit</span></span>
-<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="fu">git</span> push upstream RELEASE_3_24</span>
-<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="fu">git</span> push origin RELEASE_3_24</span></code></pre></div>
+<p><code>main</code> keeps only our own commits. Bioconductor <code>devel</code> also has the Bioconductor team’s version bumps, so never merge <code>upstream/devel</code> into <code>main</code>. Commit on <code>main</code>, then cherry-pick to <code>devel</code>:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">git</span> fetch upstream</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">git</span> checkout <span class="at">-B</span> bioc-devel upstream/devel</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="fu">git</span> cherry-pick <span class="op">&lt;</span>commits from main<span class="op">&gt;</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="fu">git</span> push upstream bioc-devel:devel</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="fu">git</span> push origin main</span></code></pre></div>
+<p>Release (the same branch on both sides):</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">git</span> fetch upstream</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">git</span> checkout <span class="at">-b</span> RELEASE_3_24 upstream/RELEASE_3_24   <span class="co"># first time only</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="fu">git</span> cherry-pick <span class="op">&lt;</span>commit on main<span class="op">&gt;</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co"># bump z in DESCRIPTION (1.0.0 to 1.0.1) and commit</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="fu">git</span> push upstream RELEASE_3_24</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="fu">git</span> push origin RELEASE_3_24</span></code></pre></div>
 <p>To push exactly the commit that was checked, push by hash:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">git</span> push upstream <span class="op">&lt;</span>hash<span class="op">&gt;</span>:refs/heads/devel</span>
-<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="fu">git</span> push origin <span class="op">&lt;</span>hash<span class="op">&gt;</span>:refs/heads/main</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">git</span> push upstream <span class="op">&lt;</span>hash on bioc-devel<span class="op">&gt;</span>:refs/heads/devel</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="fu">git</span> push origin <span class="op">&lt;</span>hash on main<span class="op">&gt;</span>:refs/heads/main</span></code></pre></div>
 <p>Never force-push. Bioconductor does not accept rewritten history, and a GitHub ruleset blocks force-pushes and deletion on <code>main</code> and on <code>RELEASE_*</code> branches.</p>
 </div>
 <div class="section level2">
