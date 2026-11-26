@@ -776,10 +776,10 @@ qcLog(whe_qc)
 #> 4 alt_reads_filter minAltReads          10         0        39
 #>             timestamp
 #>           <character>
-#> 1 2026-11-26T12:26:33
-#> 2 2026-11-26T12:26:33
-#> 3 2026-11-26T12:26:33
-#> 4 2026-11-26T12:26:33
+#> 1 2026-11-26T12:51:57
+#> 2 2026-11-26T12:51:57
+#> 3 2026-11-26T12:51:57
+#> 4 2026-11-26T12:51:57
 ```
 
 Four steps were recorded, one per applicable threshold, with strand bias
@@ -934,8 +934,8 @@ qcLog(rep_checked)
 #> 2 replicate_discordance requireBothDetected        TRUE         0        26
 #>             timestamp
 #>           <character>
-#> 1 2026-11-26T12:26:33
-#> 2 2026-11-26T12:26:33
+#> 1 2026-11-26T12:51:58
+#> 2 2026-11-26T12:51:58
 ```
 
 Two rows are recorded, one per argument, but only the first counts
@@ -978,12 +978,12 @@ qcLog(rep_qc)
 #> 6 replicate_discordance requireBothDetected        TRUE         0        24
 #>             timestamp
 #>           <character>
-#> 1 2026-11-26T12:26:33
-#> 2 2026-11-26T12:26:33
-#> 3 2026-11-26T12:26:33
-#> 4 2026-11-26T12:26:33
-#> 5 2026-11-26T12:26:33
-#> 6 2026-11-26T12:26:33
+#> 1 2026-11-26T12:51:58
+#> 2 2026-11-26T12:51:58
+#> 3 2026-11-26T12:51:58
+#> 4 2026-11-26T12:51:58
+#> 5 2026-11-26T12:51:58
+#> 6 2026-11-26T12:51:58
 qcFilters(rep_qc)[[1]]
 #> ISNVFilter object
 #>   minDepth:      200 
@@ -1034,11 +1034,11 @@ qcLog(whe_primer)
 #> 5    primer_filter n_primer_regions           2         6        33
 #>             timestamp
 #>           <character>
-#> 1 2026-11-26T12:26:33
-#> 2 2026-11-26T12:26:33
-#> 3 2026-11-26T12:26:33
-#> 4 2026-11-26T12:26:33
-#> 5 2026-11-26T12:26:34
+#> 1 2026-11-26T12:51:57
+#> 2 2026-11-26T12:51:57
+#> 3 2026-11-26T12:51:57
+#> 4 2026-11-26T12:51:57
+#> 5 2026-11-26T12:51:58
 ```
 
 The log now has five rows: the four from
@@ -2238,7 +2238,7 @@ qcLog(whe_t)
 #> 1 temporal_consistency minTimepoints           2         3         6
 #>             timestamp
 #>           <character>
-#> 1 2026-11-26T12:26:38
+#> 1 2026-11-26T12:52:04
 ```
 
 The classification reads persistent, transient, persistent: the second

@@ -113,7 +113,6 @@ The workflows in `.github/workflows/` run on `main` with R-devel and on
 Linux, macOS and Windows, `BiocCheckGitClone()` and `BiocCheck()`, test
 coverage, and a check of
 [`citation()`](https://rdrr.io/r/utils/citation.html), links and
-spelling. The pkgdown site is built from `main` only. `R_VERSION` and
-`R_BIOC_VERSION` at the top of each workflow set the versions;
-`R-CMD-check.yaml` explains why `main` does not pin a Bioconductor
-version yet. When Bioconductor 3.25 is released, update both.
+spelling. The pkgdown site is built from `main` only. The versions are
+set at the top of each workflow; update them when Bioconductor 3.25 is
+released.
