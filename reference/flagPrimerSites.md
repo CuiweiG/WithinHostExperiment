@@ -54,5 +54,5 @@ qcLog(whe)
 #> 1 primer_filter n_primer_regions           2         2        13
 #>             timestamp
 #>           <character>
-#> 1 2026-11-26T08:58:35
+#> 1 2026-11-26T12:26:10
 ```
