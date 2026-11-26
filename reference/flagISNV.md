@@ -108,10 +108,10 @@ qcLog(whe)
 #> 4 alt_reads_filter minAltReads          10         0        14
 #>             timestamp
 #>           <character>
-#> 1 2026-11-26T14:39:39
-#> 2 2026-11-26T14:39:39
-#> 3 2026-11-26T14:39:39
-#> 4 2026-11-26T14:39:39
+#> 1 2026-11-26T14:51:02
+#> 2 2026-11-26T14:51:02
+#> 3 2026-11-26T14:51:02
+#> 4 2026-11-26T14:51:02
 passedISNV(whe)
 #> WithinHostExperiment with 14 variant sites and 1 samples
 #>   assays(5): altFreq, totalDepth, refCount, altCount, qcPass

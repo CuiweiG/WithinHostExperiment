@@ -80,6 +80,6 @@ qcLog(whe)
 #> 2 replicate_discordance requireBothDetected        TRUE         0        26
 #>             timestamp
 #>           <character>
-#> 1 2026-11-26T14:39:40
-#> 2 2026-11-26T14:39:40
+#> 1 2026-11-26T14:51:03
+#> 2 2026-11-26T14:51:03
 ```
